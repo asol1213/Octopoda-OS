@@ -39,10 +39,17 @@ class SynrixAutoGenMemory:
     Get your free key at https://octopodas.com
     """
 
-    def __init__(self, group_id: str = "default"):
+    def __init__(self, group_id: str = "default", backend=None):
         self.group_id = group_id
-        client = _get_client()
-        self._agent = client.agent(f"autogen_{group_id}", metadata={"type": "autogen", "group": group_id})
+
+        if backend is not None:
+            from synrix_runtime.integrations._local_adapter import _LocalAgentAdapter
+            self._agent = _LocalAgentAdapter(backend, f"autogen_{group_id}")
+            self.backend = backend
+        else:
+            client = _get_client()
+            self._agent = client.agent(f"autogen_{group_id}", metadata={"type": "autogen", "group": group_id})
+            self.backend = None
 
     def store_message(self, sender: str, recipient: str, content: str, timestamp: float = None):
         """Store a message in the conversation history."""

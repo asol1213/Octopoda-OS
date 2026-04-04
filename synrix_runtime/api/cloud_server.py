@@ -1037,6 +1037,8 @@ async def register_agent(req: RegisterAgentRequest, auth=Depends(verify_auth)):
             agent_type=req.agent_type,
             status="running",
         )
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

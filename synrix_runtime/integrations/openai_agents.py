@@ -40,9 +40,15 @@ class SynrixOpenAIMemory:
     Get your free key at https://octopodas.com
     """
 
-    def __init__(self):
-        client = _get_client()
-        self._agent = client.agent("openai_agents", metadata={"type": "openai_agents"})
+    def __init__(self, backend=None):
+        if backend is not None:
+            from synrix_runtime.integrations._local_adapter import _LocalAgentAdapter
+            self._agent = _LocalAgentAdapter(backend, "openai_agents")
+            self.backend = backend
+        else:
+            client = _get_client()
+            self._agent = client.agent("openai_agents", metadata={"type": "openai_agents"})
+            self.backend = None
 
     def store_thread_state(self, thread_id: str, state: dict):
         """Store the state of a thread."""

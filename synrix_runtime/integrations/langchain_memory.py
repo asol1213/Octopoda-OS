@@ -59,14 +59,21 @@ class SynrixMemory(BaseMemory):
     Get your free key at https://octopodas.com
     """
 
-    def __init__(self, agent_id: str = "langchain_default", memory_key: str = "history", **kwargs):
+    def __init__(self, agent_id: str = "langchain_default", memory_key: str = "history",
+                 backend=None, **kwargs):
         self.agent_id = agent_id
         self.memory_key = memory_key
         self._memory_variables = [memory_key]
         self._message_count = 0
 
-        client = _get_client()
-        self._agent = client.agent(agent_id, metadata={"type": "langchain"})
+        if backend is not None:
+            from synrix_runtime.integrations._local_adapter import _LocalAgentAdapter
+            self._agent = _LocalAgentAdapter(backend, agent_id)
+            self.backend = backend
+        else:
+            client = _get_client()
+            self._agent = client.agent(agent_id, metadata={"type": "langchain"})
+            self.backend = None
 
     @property
     def memory_variables(self) -> List[str]:
@@ -132,6 +139,23 @@ class SynrixMemory(BaseMemory):
                 messages.append(val)
         messages.sort(key=lambda x: x.get("turn", 0))
         return messages
+
+    def store_entity(self, name: str, data: dict):
+        """Store entity information (e.g. a person, place, concept)."""
+        payload = data.copy() if isinstance(data, dict) else {"value": data}
+        payload["_stored_at"] = time.time()
+        self._agent.write(f"langchain:{self.agent_id}:entities:{name}", payload,
+                          tags=["entity", name])
+
+    def get_entity(self, name: str) -> Optional[dict]:
+        """Get stored entity information."""
+        return self._agent.read(f"langchain:{self.agent_id}:entities:{name}")
+
+    def restore_from_crash(self) -> int:
+        """Restore message count from stored history after a crash."""
+        messages = self.get_full_history()
+        self._message_count = len(messages)
+        return self._message_count
 
     def export_conversation(self) -> dict:
         """Export full conversation with metadata."""
