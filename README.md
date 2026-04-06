@@ -7,8 +7,8 @@ Persistent memory, semantic search, knowledge graphs, loop detection, agent mess
 [![PyPI](https://img.shields.io/pypi/v/octopoda)](https://pypi.org/project/octopoda/)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![Tests](https://img.shields.io/badge/tests-215%20passing-brightgreen)]()
-[![Discord](https://img.shields.io/badge/Discord-Join-7289DA)]()
+[![Tests](https://img.shields.io/badge/tests-208%20passing-brightgreen)]()
+[![GitHub release](https://img.shields.io/github/v/release/RyjoxTechnologies/Octopoda-OS)](https://github.com/RyjoxTechnologies/Octopoda-OS/releases)
 
 ---
 
@@ -366,4 +366,4 @@ MIT — use it however you want. See [LICENSE](LICENSE).
 
 ---
 
-Built by [RYJOX Technologies](https://octopodas.com) | [Documentation](https://octopodas.com/docs) | [Cloud API](https://api.octopodas.com) | [Discord]()
+Built by [RYJOX Technologies](https://octopodas.com) | [Documentation](https://octopodas.com/docs) | [Cloud API](https://api.octopodas.com) | [PyPI](https://pypi.org/project/octopoda/)

@@ -96,9 +96,10 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/RYJOX-Technologies/Octopoda"
-Documentation = "https://github.com/RYJOX-Technologies/Octopoda#readme"
-Repository = "https://github.com/RYJOX-Technologies/Octopoda"
+Homepage = "https://octopodas.com"
+Documentation = "https://github.com/RyjoxTechnologies/Octopoda-OS#readme"
+Repository = "https://github.com/RyjoxTechnologies/Octopoda-OS"
+Changelog = "https://github.com/RyjoxTechnologies/Octopoda-OS/blob/main/CHANGELOG.md"
 
 [project.scripts]
 octopoda = "synrix_runtime.start:main"
