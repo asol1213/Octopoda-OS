@@ -276,24 +276,58 @@ Add to your Claude Desktop config (`claude_desktop_config.json`):
 
 ---
 
-## Cloud API (Optional)
+## Cloud Dashboard
 
-Don't want to manage infrastructure? Use the hosted API at `api.octopodas.com`.
+Real-time monitoring, memory exploration, anomaly detection, and agent health — all from your browser.
+
+![Octopoda Dashboard](docs/images/dashboard-overview.png)
+
+Sign up free at [octopodas.com](https://octopodas.com) to get your API key and dashboard access.
+
+---
+
+## Cloud Setup
+
+**1. Create an account**
+
+Sign up at [octopodas.com](https://octopodas.com). You'll receive an API key and a verification code via email.
+
+**2. Set your API key**
+
+```bash
+export OCTOPODA_API_KEY=sk-octopoda-...
+```
+
+Or run `octopoda-login` in your terminal to sign up or log in interactively.
+
+**3. Use the cloud API**
 
 ```python
 from octopoda import Octopoda
 
-client = Octopoda(api_key="sk-octopoda-...")
+client = Octopoda()  # Reads OCTOPODA_API_KEY from env
 agent = client.agent("my_agent")
 agent.write("preference", "dark mode")
 results = agent.search("user preferences")
+# Returns results with similarity scores
 ```
 
-**Free tier:** 3 agents, 1K memories per agent, 100 AI extractions.
-**Pro ($19/mo):** 25 agents, 50K memories, dashboard, Brain system.
-**Team ($79/mo):** 100 agents, 200K memories, shared memory, priority support.
+Your existing local code works with cloud too — just set the API key and `AgentRuntime` automatically syncs to the cloud.
 
-Sign up at [octopodas.com](https://octopodas.com)
+**4. Open the dashboard**
+
+Go to [octopodas.com/dashboard](https://octopodas.com/dashboard) to see your agents, memories, loop detection, anomalies, and performance metrics in real time.
+
+### Plans
+
+| | Free | Pro ($19/mo) | Business ($79/mo) |
+|---|---|---|---|
+| **Agents** | 5 | 25 | 75 |
+| **Memories** | 5,000 | 250,000 | 1,000,000 |
+| **AI extractions** | 100 (platform key) | 100 (then your own key) | 100 (then your own key) |
+| **Dashboard** | Yes | Yes | Yes |
+| **Semantic search** | Yes | Yes | Yes |
+| **Rate limit** | 60 rpm | 300 rpm | 1,000 rpm |
 
 ---
 
