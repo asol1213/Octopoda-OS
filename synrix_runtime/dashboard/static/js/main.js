@@ -69,16 +69,18 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     /**
-     * Format seconds into "Xh Xm Xs".
+     * Format seconds into "Xd Xh Xm" (or shorter for small values).
      * @param {number} seconds
      * @returns {string}
      */
     function formatUptime(seconds) {
         if (seconds == null || isNaN(seconds)) return "--";
         seconds = Math.floor(seconds);
-        var h = Math.floor(seconds / 3600);
+        var d = Math.floor(seconds / 86400);
+        var h = Math.floor((seconds % 86400) / 3600);
         var m = Math.floor((seconds % 3600) / 60);
         var s = seconds % 60;
+        if (d > 0) return d + "d " + h + "h " + m + "m";
         if (h > 0) return h + "h " + m + "m " + s + "s";
         if (m > 0) return m + "m " + s + "s";
         return s + "s";
@@ -169,11 +171,20 @@ document.addEventListener("DOMContentLoaded", function () {
             titleEl.textContent = TAB_TITLES[tabId];
         }
 
-        // Show / hide tab content sections (id="tab-{tabId}")
+        // Show / hide tab content sections (id="tab-{tabId}") with fade-in
         for (var j = 0; j < TAB_IDS.length; j++) {
             var panel = document.getElementById("tab-" + TAB_IDS[j]);
             if (panel) {
-                panel.style.display = TAB_IDS[j] === tabId ? "" : "none";
+                if (TAB_IDS[j] === tabId) {
+                    panel.style.display = "";
+                    panel.classList.remove("tab-fade-in");
+                    // Force reflow to restart animation
+                    void panel.offsetWidth;
+                    panel.classList.add("tab-fade-in");
+                } else {
+                    panel.style.display = "none";
+                    panel.classList.remove("tab-fade-in");
+                }
             }
         }
 
@@ -605,6 +616,9 @@ document.addEventListener("DOMContentLoaded", function () {
                 updateAgentGrid(agents);
                 updateAgentsTable(agents);
                 updateAgentStatusList(agents);
+                renderHealthDonut(agents);
+                renderPerfLeaderboard(agents);
+                populateAgentSelect(agents);
             } catch (err) {
                 console.error("[SSE] agent_update parse error:", err);
             }
@@ -616,6 +630,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 window.synrixState.systemMetrics = data;
                 updateTopBarMetrics(data);
                 updateMetricCards(data);
+                updateHealthStats(data);
             } catch (err) {
                 console.error("[SSE] metrics_update parse error:", err);
             }
@@ -640,6 +655,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 var anomalies = data.anomalies || [];
                 window.synrixState.anomalies = anomalies;
                 renderAnomalyLog(anomalies);
+                renderAnomaliesPanel(anomalies);
                 for (var i = 0; i < anomalies.length; i++) {
                     var a = anomalies[i];
                     var aKey = (a.agent_id || "") + ":" + (a.type || "") + ":" + Math.floor((a.timestamp || 0) / 10);
@@ -774,6 +790,9 @@ document.addEventListener("DOMContentLoaded", function () {
             updateAgentGrid(data);
             updateAgentsTable(data);
             updateAgentStatusList(data);
+            renderHealthDonut(data);
+            renderPerfLeaderboard(data);
+            populateAgentSelect(data);
         });
     }
 
@@ -783,6 +802,7 @@ document.addEventListener("DOMContentLoaded", function () {
             window.synrixState.systemMetrics = data;
             updateTopBarMetrics(data);
             updateMetricCards(data);
+            updateHealthStats(data);
         });
     }
 
@@ -820,6 +840,7 @@ document.addEventListener("DOMContentLoaded", function () {
             if (err || !Array.isArray(data)) return;
             window.synrixState.anomalies = data;
             renderAnomalyLog(data);
+            renderAnomaliesPanel(data);
             for (var i = 0; i < data.length; i++) {
                 appendEvent({
                     type: "anomaly",
@@ -846,6 +867,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 });
             }
             updateRecoveryConsole(history);
+            renderRecentRecoveries(history);
 
             // Update recovery page stat cards
             setText("#recovery-total", history.length || stats.total_recoveries || 0);
@@ -980,6 +1002,557 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // ---------------------------------------------------------------------------
+    // Premium Feature: Agent Health Donut
+    // ---------------------------------------------------------------------------
+
+    function renderHealthDonut(agents) {
+        if (!agents) agents = window.synrixState.agents || [];
+        var total = agents.length;
+        var healthy = 0;
+        var totalMemories = 0;
+        var totalCrashes = 0;
+
+        for (var i = 0; i < agents.length; i++) {
+            var a = agents[i];
+            if (a.status === "active" || a.status === "running") healthy++;
+            totalMemories += (a.memory_node_count || 0);
+            totalCrashes += (a.crash_count || 0);
+        }
+
+        // Update text elements
+        var countEl = document.getElementById("health-donut-count");
+        if (countEl) animateNumber(countEl, total);
+
+        var healthyEl = document.getElementById("health-donut-healthy");
+        if (healthyEl) healthyEl.textContent = "Healthy " + healthy;
+
+        var memoriesEl = document.getElementById("health-stats-memories");
+        if (memoriesEl) animateNumber(memoriesEl, totalMemories);
+
+        var criticalEl = document.getElementById("health-stats-critical");
+        if (criticalEl) animateNumber(criticalEl, totalCrashes);
+
+        // Render SVG donut chart
+        var donutContainer = document.getElementById("health-donut-svg");
+        if (!donutContainer) return;
+
+        var size = 120;
+        var strokeWidth = 10;
+        var radius = (size - strokeWidth) / 2;
+        var circumference = 2 * Math.PI * radius;
+        var healthyPct = total > 0 ? healthy / total : 0;
+        var healthyOffset = circumference * (1 - healthyPct);
+
+        var healthyColor = "#10b981";
+        var bgColor = "rgba(255,255,255,0.08)";
+        if (healthyPct < 0.5) healthyColor = "#ef4444";
+        else if (healthyPct < 0.8) healthyColor = "#f59e0b";
+
+        donutContainer.innerHTML =
+            '<svg width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + ' ' + size + '">' +
+            '<circle cx="' + (size / 2) + '" cy="' + (size / 2) + '" r="' + radius + '" ' +
+            'fill="none" stroke="' + bgColor + '" stroke-width="' + strokeWidth + '"/>' +
+            '<circle cx="' + (size / 2) + '" cy="' + (size / 2) + '" r="' + radius + '" ' +
+            'fill="none" stroke="' + healthyColor + '" stroke-width="' + strokeWidth + '" ' +
+            'stroke-dasharray="' + circumference + '" ' +
+            'stroke-dashoffset="' + healthyOffset + '" ' +
+            'stroke-linecap="round" ' +
+            'transform="rotate(-90 ' + (size / 2) + ' ' + (size / 2) + ')" ' +
+            'style="transition: stroke-dashoffset 0.6s ease;"/>' +
+            '</svg>';
+    }
+
+    // ---------------------------------------------------------------------------
+    // Premium Feature: Agent Health Stats
+    // ---------------------------------------------------------------------------
+
+    function updateHealthStats(metrics) {
+        if (!metrics) return;
+        var agents = window.synrixState.agents || [];
+
+        // Total memory nodes across all agents
+        var totalMemories = 0;
+        for (var i = 0; i < agents.length; i++) {
+            totalMemories += (agents[i].memory_node_count || 0);
+        }
+        var memoriesEl = document.getElementById("health-stats-memories");
+        if (memoriesEl) animateNumber(memoriesEl, totalMemories);
+
+        // Storage usage from system metrics
+        var storageEl = document.getElementById("health-stats-storage");
+        if (storageEl) {
+            var storageVal = metrics.storage_mb || metrics.total_storage_mb || 0;
+            if (storageVal > 0) {
+                storageEl.textContent = storageVal.toFixed(1) + " MB";
+            } else {
+                storageEl.textContent = "--";
+            }
+        }
+
+        // Average TTL from system metrics
+        var ttlEl = document.getElementById("health-stats-ttl");
+        if (ttlEl) {
+            var ttlVal = metrics.avg_ttl_seconds || metrics.mean_ttl || 0;
+            if (ttlVal > 0) {
+                ttlEl.textContent = formatUptime(ttlVal);
+            } else {
+                ttlEl.textContent = "--";
+            }
+        }
+
+        // Critical errors / crashes
+        var criticalEl = document.getElementById("health-stats-critical");
+        if (criticalEl) {
+            animateNumber(criticalEl, metrics.total_crashes || 0);
+        }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Premium Feature: Anomalies Panel
+    // ---------------------------------------------------------------------------
+
+    function renderAnomaliesPanel(anomalies) {
+        var container = document.getElementById("anomalies-list");
+        if (!container) return;
+
+        if (!anomalies || anomalies.length === 0) {
+            container.innerHTML =
+                '<div class="empty-state" style="padding:1.5rem;text-align:center;color:var(--text-secondary);">' +
+                'No anomalies detected -- System is healthy.' +
+                '</div>';
+            return;
+        }
+
+        container.innerHTML = "";
+
+        var badgeColors = {
+            "REPEAT LOOP": "#ef4444",
+            "REPEAT_LOOP": "#ef4444",
+            "repeat_loop": "#ef4444",
+            "LATENCY SPIKE": "#f97316",
+            "LATENCY_SPIKE": "#f97316",
+            "latency_spike": "#f97316",
+            "IDLE": "#eab308",
+            "idle": "#eab308",
+            "MEMORY_LEAK": "#ef4444",
+            "memory_leak": "#ef4444",
+            "ERROR_BURST": "#ef4444",
+            "error_burst": "#ef4444",
+        };
+
+        var maxDisplay = Math.min(anomalies.length, 20);
+        for (var i = 0; i < maxDisplay; i++) {
+            var a = anomalies[i];
+            if (typeof a !== "object" || !a) continue;
+
+            var card = elem("div", "anomaly-alert-card");
+            card.style.cssText =
+                "padding:0.75rem 1rem;border-radius:8px;background:var(--card-bg, rgba(255,255,255,0.04));" +
+                "border:1px solid var(--border, rgba(255,255,255,0.08));margin-bottom:0.5rem;" +
+                "display:flex;align-items:center;gap:0.75rem;";
+
+            // Anomaly type badge
+            var typeLabel = (a.type || "UNKNOWN").toUpperCase().replace(/_/g, " ");
+            var badgeColor = badgeColors[a.type] || badgeColors[typeLabel] || "#6b7280";
+            var badge = elem("span", "anomaly-badge");
+            badge.textContent = typeLabel;
+            badge.style.cssText =
+                "padding:0.2rem 0.5rem;border-radius:4px;font-size:0.7rem;font-weight:700;" +
+                "letter-spacing:0.03em;color:#fff;background:" + badgeColor + ";" +
+                "white-space:nowrap;flex-shrink:0;";
+
+            // Agent ID
+            var agentLabel = elem("span", "anomaly-agent");
+            agentLabel.textContent = a.agent_id || "unknown";
+            agentLabel.style.cssText =
+                "color:var(--accent, #818cf8);font-weight:600;font-size:0.85rem;flex-shrink:0;";
+
+            // Description
+            var desc = elem("span", "anomaly-desc");
+            desc.textContent = a.description || a.detail || "";
+            desc.style.cssText =
+                "color:var(--text-secondary, #94a3b8);font-size:0.8rem;flex:1;overflow:hidden;" +
+                "text-overflow:ellipsis;white-space:nowrap;";
+
+            // Time ago
+            var time = elem("span", "anomaly-time");
+            time.textContent = timeAgo(a.timestamp);
+            time.style.cssText =
+                "color:var(--text-muted, #64748b);font-size:0.75rem;flex-shrink:0;";
+
+            card.appendChild(badge);
+            card.appendChild(agentLabel);
+            card.appendChild(desc);
+            card.appendChild(time);
+            container.appendChild(card);
+        }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Premium Feature: Recent Recoveries Panel
+    // ---------------------------------------------------------------------------
+
+    function renderRecentRecoveries(history) {
+        var container = document.getElementById("recent-recoveries-list");
+        if (!container) return;
+
+        if (!history || history.length === 0) {
+            container.innerHTML =
+                '<div class="empty-state" style="padding:1.5rem;text-align:center;color:var(--text-secondary);">' +
+                'No recoveries needed -- Agents are running healthy.' +
+                '</div>';
+            return;
+        }
+
+        container.innerHTML = "";
+
+        // Show most recent first, up to 10
+        var sorted = history.slice().sort(function (a, b) {
+            return (b.timestamp || 0) - (a.timestamp || 0);
+        });
+        var maxDisplay = Math.min(sorted.length, 10);
+
+        for (var i = 0; i < maxDisplay; i++) {
+            var r = sorted[i];
+            var card = elem("div", "recovery-alert-card");
+            card.style.cssText =
+                "padding:0.75rem 1rem;border-radius:8px;background:var(--card-bg, rgba(255,255,255,0.04));" +
+                "border:1px solid var(--border, rgba(255,255,255,0.08));margin-bottom:0.5rem;" +
+                "display:flex;align-items:center;gap:0.75rem;";
+
+            var icon = elem("span", "recovery-icon");
+            icon.textContent = r.success !== false ? "\u2714" : "\u2718";
+            icon.style.cssText =
+                "color:" + (r.success !== false ? "#10b981" : "#ef4444") + ";" +
+                "font-size:1rem;flex-shrink:0;";
+
+            var agentLabel = elem("span", "recovery-agent-label");
+            agentLabel.textContent = r.agent_id || "unknown";
+            agentLabel.style.cssText =
+                "color:var(--accent, #818cf8);font-weight:600;font-size:0.85rem;flex-shrink:0;";
+
+            var strategy = elem("span", "recovery-strategy-label");
+            strategy.textContent = r.strategy || "auto";
+            strategy.style.cssText =
+                "padding:0.15rem 0.4rem;border-radius:4px;font-size:0.7rem;" +
+                "background:rgba(99,102,241,0.15);color:#818cf8;flex-shrink:0;";
+
+            var detail = elem("span", "recovery-detail");
+            detail.textContent = r.detail || r.description || "";
+            detail.style.cssText =
+                "color:var(--text-secondary, #94a3b8);font-size:0.8rem;flex:1;" +
+                "overflow:hidden;text-overflow:ellipsis;white-space:nowrap;";
+
+            var time = elem("span", "recovery-time-label");
+            time.textContent = timeAgo(r.timestamp);
+            time.style.cssText =
+                "color:var(--text-muted, #64748b);font-size:0.75rem;flex-shrink:0;";
+
+            card.appendChild(icon);
+            card.appendChild(agentLabel);
+            card.appendChild(strategy);
+            card.appendChild(detail);
+            card.appendChild(time);
+            container.appendChild(card);
+        }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Premium Feature: Performance Leaderboard
+    // ---------------------------------------------------------------------------
+
+    function renderPerfLeaderboard(agents) {
+        var tbody = document.getElementById("perf-leaderboard-body");
+        if (!tbody) return;
+
+        if (!agents || agents.length === 0) {
+            tbody.innerHTML =
+                '<tr><td colspan="7" class="empty-state" style="text-align:center;padding:1.5rem;">No agent data</td></tr>';
+            return;
+        }
+
+        // Sort by performance_score descending
+        var ranked = agents.slice().sort(function (a, b) {
+            var sa = a.performance_score != null ? a.performance_score : 0;
+            var sb = b.performance_score != null ? b.performance_score : 0;
+            return sb - sa;
+        });
+
+        tbody.innerHTML = "";
+
+        for (var i = 0; i < ranked.length; i++) {
+            var a = ranked[i];
+            var row = document.createElement("tr");
+            row.className = "leaderboard-row";
+
+            var score = a.performance_score != null ? a.performance_score : 0;
+            var scoreColor = "#10b981"; // green
+            if (score < 70) scoreColor = "#ef4444"; // red
+            else if (score < 85) scoreColor = "#f59e0b"; // amber
+
+            var errorRate = ((a.error_rate || 0) * 100).toFixed(1) + "%";
+
+            row.innerHTML =
+                '<td style="font-weight:700;color:var(--text-secondary);">' + (i + 1) + '</td>' +
+                '<td style="color:var(--accent, #818cf8);font-weight:600;">' + escapeHtml(a.agent_id) + '</td>' +
+                '<td><span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:4px;' +
+                'font-weight:700;font-size:0.8rem;color:#fff;background:' + scoreColor + ';">' +
+                score.toFixed(1) + '</span></td>' +
+                '<td>' + (a.total_operations || 0) + '</td>' +
+                '<td>' + formatLatency(a.avg_write_latency_us) + '</td>' +
+                '<td>' + formatLatency(a.avg_read_latency_us) + '</td>' +
+                '<td style="color:' + (a.error_rate > 0.05 ? '#ef4444' : 'var(--text-secondary)') + ';">' +
+                errorRate + '</td>';
+
+            tbody.appendChild(row);
+        }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Premium Feature: Agent Select Dropdown for Score Breakdown
+    // ---------------------------------------------------------------------------
+
+    var _agentSelectPopulated = false;
+
+    function populateAgentSelect(agents) {
+        var select = document.getElementById("perf-agent-select");
+        if (!select || !agents || agents.length === 0) return;
+
+        // Only populate options if not already done or agent list changed
+        var currentCount = select.options.length;
+        if (_agentSelectPopulated && currentCount === agents.length) return;
+
+        var previousValue = select.value;
+        select.innerHTML = "";
+
+        for (var i = 0; i < agents.length; i++) {
+            var opt = document.createElement("option");
+            opt.value = agents[i].agent_id;
+            opt.textContent = agents[i].agent_id;
+            select.appendChild(opt);
+        }
+
+        // Restore previous selection if still valid
+        if (previousValue) {
+            for (var j = 0; j < select.options.length; j++) {
+                if (select.options[j].value === previousValue) {
+                    select.value = previousValue;
+                    break;
+                }
+            }
+        }
+
+        _agentSelectPopulated = true;
+
+        // Bind change handler (only once)
+        if (!select._boundChange) {
+            select._boundChange = true;
+            select.addEventListener("change", function () {
+                var agentId = this.value;
+                if (agentId) {
+                    fetchAgentScoreBreakdown(agentId);
+                    fetchAgentPerformanceDetail(agentId);
+                }
+            });
+
+            // Trigger initial load for first agent
+            if (select.value) {
+                fetchAgentScoreBreakdown(select.value);
+                fetchAgentPerformanceDetail(select.value);
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Premium Feature: Score Breakdown (progress bars)
+    // ---------------------------------------------------------------------------
+
+    function fetchAgentScoreBreakdown(agentId) {
+        fetchJSON("/api/agents/" + encodeURIComponent(agentId), function (err, data) {
+            if (err || !data) return;
+            renderScoreBreakdown(data);
+            renderAgentPerformanceDetail(data);
+        });
+    }
+
+    function renderScoreBreakdown(agentData) {
+        var container = document.getElementById("score-breakdown");
+        if (!container) return;
+
+        var components = [
+            { label: "Reliability", max: 25, key: "reliability_score", fallbackKey: "reliability" },
+            { label: "Latency", max: 20, key: "latency_score", fallbackKey: "latency" },
+            { label: "Stability", max: 15, key: "stability_score", fallbackKey: "stability" },
+            { label: "Activity", max: 15, key: "activity_score", fallbackKey: "activity" },
+            { label: "Search Quality", max: 15, key: "search_quality_score", fallbackKey: "search_quality" },
+            { label: "Memory Utilisation", max: 10, key: "memory_utilisation_score", fallbackKey: "memory_utilisation" },
+        ];
+
+        // Try to extract scores from nested score_breakdown or top-level keys
+        var scores = agentData.score_breakdown || agentData.scores || agentData;
+
+        container.innerHTML = "";
+
+        for (var i = 0; i < components.length; i++) {
+            var comp = components[i];
+            var value = scores[comp.key] != null ? scores[comp.key] :
+                        (scores[comp.fallbackKey] != null ? scores[comp.fallbackKey] : null);
+
+            // If no individual score data, estimate from total score proportionally
+            if (value == null && agentData.performance_score != null) {
+                value = (agentData.performance_score / 100) * comp.max;
+            }
+            if (value == null) value = 0;
+
+            var pct = comp.max > 0 ? Math.min((value / comp.max) * 100, 100) : 0;
+
+            var barColor = "#10b981";
+            if (pct < 40) barColor = "#ef4444";
+            else if (pct < 70) barColor = "#f59e0b";
+
+            var row = elem("div", "score-row");
+            row.style.cssText = "margin-bottom:0.75rem;";
+
+            row.innerHTML =
+                '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.25rem;">' +
+                '<span style="font-size:0.8rem;color:var(--text-secondary, #94a3b8);">' + comp.label + '</span>' +
+                '<span style="font-size:0.75rem;color:var(--text-muted, #64748b);">' +
+                value.toFixed(1) + ' / ' + comp.max + '</span>' +
+                '</div>' +
+                '<div style="width:100%;height:6px;border-radius:3px;background:rgba(255,255,255,0.08);overflow:hidden;">' +
+                '<div style="width:' + pct + '%;height:100%;border-radius:3px;background:' + barColor + ';' +
+                'transition:width 0.5s ease;"></div>' +
+                '</div>';
+
+            container.appendChild(row);
+        }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Premium Feature: Per-Agent Performance Detail
+    // ---------------------------------------------------------------------------
+
+    function fetchAgentPerformanceDetail(agentId) {
+        fetchJSON("/api/agents/" + encodeURIComponent(agentId), function (err, data) {
+            if (err || !data) return;
+            renderAgentPerformanceDetail(data);
+        });
+    }
+
+    function renderAgentPerformanceDetail(agentData) {
+        // Score donut (small version)
+        var scoreDonut = document.getElementById("perf-detail-donut");
+        if (scoreDonut) {
+            var score = agentData.performance_score != null ? agentData.performance_score : 0;
+            var size = 80;
+            var sw = 7;
+            var r = (size - sw) / 2;
+            var circ = 2 * Math.PI * r;
+            var pct = score / 100;
+            var offset = circ * (1 - pct);
+
+            var color = "#10b981";
+            if (score < 70) color = "#ef4444";
+            else if (score < 85) color = "#f59e0b";
+
+            scoreDonut.innerHTML =
+                '<svg width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + ' ' + size + '">' +
+                '<circle cx="' + (size / 2) + '" cy="' + (size / 2) + '" r="' + r + '" ' +
+                'fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="' + sw + '"/>' +
+                '<circle cx="' + (size / 2) + '" cy="' + (size / 2) + '" r="' + r + '" ' +
+                'fill="none" stroke="' + color + '" stroke-width="' + sw + '" ' +
+                'stroke-dasharray="' + circ + '" stroke-dashoffset="' + offset + '" ' +
+                'stroke-linecap="round" ' +
+                'transform="rotate(-90 ' + (size / 2) + ' ' + (size / 2) + ')" ' +
+                'style="transition: stroke-dashoffset 0.6s ease;"/>' +
+                '<text x="' + (size / 2) + '" y="' + (size / 2 + 5) + '" ' +
+                'text-anchor="middle" fill="' + color + '" font-size="16" font-weight="700">' +
+                score.toFixed(0) + '</text>' +
+                '</svg>';
+        }
+
+        // Ops/min
+        var opsEl = document.getElementById("perf-detail-ops");
+        if (opsEl) {
+            var opsPerMin = agentData.ops_per_minute != null ? agentData.ops_per_minute :
+                            (agentData.total_operations != null && agentData.uptime_seconds > 0
+                                ? (agentData.total_operations / (agentData.uptime_seconds / 60)).toFixed(1)
+                                : "--");
+            opsEl.textContent = opsPerMin;
+        }
+
+        // Error rate
+        var errEl = document.getElementById("perf-detail-error-rate");
+        if (errEl) {
+            errEl.textContent = agentData.error_rate != null
+                ? ((agentData.error_rate) * 100).toFixed(1) + "%"
+                : "--";
+        }
+
+        // Memory nodes
+        var memEl = document.getElementById("perf-detail-memory");
+        if (memEl) {
+            memEl.textContent = agentData.memory_node_count != null
+                ? agentData.memory_node_count
+                : "--";
+        }
+
+        // Crashes
+        var crashEl = document.getElementById("perf-detail-crashes");
+        if (crashEl) {
+            crashEl.textContent = agentData.crash_count != null
+                ? agentData.crash_count
+                : "--";
+        }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Premium Feature: CSS Animation Injection
+    // ---------------------------------------------------------------------------
+
+    function injectPremiumStyles() {
+        var styleId = "synrix-premium-styles";
+        if (document.getElementById(styleId)) return;
+
+        var style = document.createElement("style");
+        style.id = styleId;
+        style.textContent =
+            // Tab fade-in animation
+            '@keyframes tabFadeIn {' +
+            '  from { opacity: 0; transform: translateY(8px); }' +
+            '  to   { opacity: 1; transform: translateY(0); }' +
+            '}' +
+            '.tab-fade-in {' +
+            '  animation: tabFadeIn 0.3s ease-out forwards;' +
+            '}' +
+
+            // Anomaly card hover
+            '.anomaly-alert-card:hover {' +
+            '  background: rgba(255,255,255,0.06) !important;' +
+            '  transition: background 0.2s ease;' +
+            '}' +
+
+            // Recovery card hover
+            '.recovery-alert-card:hover {' +
+            '  background: rgba(255,255,255,0.06) !important;' +
+            '  transition: background 0.2s ease;' +
+            '}' +
+
+            // Leaderboard row hover
+            '.leaderboard-row:hover {' +
+            '  background: rgba(255,255,255,0.04);' +
+            '  transition: background 0.15s ease;' +
+            '}' +
+
+            // Score row animation
+            '.score-row {' +
+            '  animation: tabFadeIn 0.25s ease-out forwards;' +
+            '}';
+
+        document.head.appendChild(style);
+    }
+
+    // ---------------------------------------------------------------------------
     // Expose functions globally for inline onclick handlers & external use
     // ---------------------------------------------------------------------------
     window.switchTab = switchTab;
@@ -991,11 +1564,20 @@ document.addEventListener("DOMContentLoaded", function () {
     window.formatUptime = formatUptime;
     window.timeAgo = timeAgo;
     window.animateNumber = animateNumber;
+    window.renderHealthDonut = renderHealthDonut;
+    window.renderAnomaliesPanel = renderAnomaliesPanel;
+    window.renderRecentRecoveries = renderRecentRecoveries;
+    window.renderPerfLeaderboard = renderPerfLeaderboard;
+    window.renderScoreBreakdown = renderScoreBreakdown;
+    window.renderAgentPerformanceDetail = renderAgentPerformanceDetail;
+    window.updateHealthStats = updateHealthStats;
+    window.fetchAgentScoreBreakdown = fetchAgentScoreBreakdown;
 
     // ---------------------------------------------------------------------------
     // Initialization
     // ---------------------------------------------------------------------------
 
+    injectPremiumStyles();
     bindTabNavigation();
     bindTableSorting();
     bindDemoControls();
@@ -1004,5 +1586,5 @@ document.addEventListener("DOMContentLoaded", function () {
     loadInitialData();
     initSSE();
 
-    console.log("[Octopoda] Dashboard initialized");
+    console.log("[Octopoda] Dashboard initialized (premium features active)");
 });
