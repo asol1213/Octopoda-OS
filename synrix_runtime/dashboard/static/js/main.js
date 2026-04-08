@@ -379,10 +379,13 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!list) return;
         list.innerHTML = "";
 
+        var hint = document.getElementById("empty-agents-hint");
         if (!agents || agents.length === 0) {
             list.innerHTML = '<div class="empty-state">No agents registered</div>';
+            if (hint) hint.style.display = "block";
             return;
         }
+        if (hint) hint.style.display = "none";
 
         for (var i = 0; i < agents.length; i++) {
             var a = agents[i];
@@ -403,7 +406,9 @@ document.addEventListener("DOMContentLoaded", function () {
                 '<span class="agent-status-item__dot" style="background:' + statusColor + ';"></span>' +
                 '<span class="agent-status-item__name">' + escapeHtml(a.agent_id || "unknown") + '</span>' +
                 '<span class="agent-status-item__score ' + scoreClass + '">' + score + '</span>' +
-                '<span class="agent-status-item__time">' + formatUptime(a.uptime_seconds) + '</span>';
+                '<span class="agent-status-item__time">' + formatUptime(a.uptime_seconds) + '</span>' +
+                '<button class="btn btn-sm btn-danger agent-action-btn" onclick="killAgent(\'' + escapeHtml(a.agent_id) + '\')" title="Kill" style="padding:2px 6px;font-size:11px;margin-left:4px;min-width:auto;">&#10005;</button>' +
+                '<button class="btn btn-sm btn-success agent-action-btn" onclick="restartAgent(\'' + escapeHtml(a.agent_id) + '\')" title="Restart" style="padding:2px 6px;font-size:11px;margin-left:2px;min-width:auto;">&#8635;</button>';
 
             list.appendChild(item);
         }
@@ -619,6 +624,12 @@ document.addEventListener("DOMContentLoaded", function () {
                 renderHealthDonut(agents);
                 renderPerfLeaderboard(agents);
                 populateAgentSelect(agents);
+                // Onboarding: show/hide based on agent count
+                if (agents.length === 0) {
+                    renderOnboarding();
+                } else {
+                    removeOnboarding();
+                }
             } catch (err) {
                 console.error("[SSE] agent_update parse error:", err);
             }
@@ -641,6 +652,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 var data = JSON.parse(e.data);
                 var ops = data.operations || [];
                 for (var i = 0; i < ops.length; i++) {
+                    var opKey = ops[i].key || "";
+                    // Filter out system metrics and runtime internals
+                    if (opKey.indexOf("metrics:") === 0) continue;
+                    if (opKey.indexOf("runtime:") === 0) continue;
+                    if (opKey.indexOf(":session:active") !== -1) continue;
                     appendMemoryOp(ops[i]);
                 }
             } catch (err) {
@@ -793,6 +809,12 @@ document.addEventListener("DOMContentLoaded", function () {
             renderHealthDonut(data);
             renderPerfLeaderboard(data);
             populateAgentSelect(data);
+            // Onboarding: show welcome card when no agents, remove when agents appear
+            if (data.length === 0) {
+                renderOnboarding();
+            } else {
+                removeOnboarding();
+            }
         });
     }
 
@@ -913,6 +935,7 @@ document.addEventListener("DOMContentLoaded", function () {
         fetchAnomalies();
         fetchRecoveryHistory();
         fetchSharedSpaces();
+        fetchTimeline();
     }
 
     // ---------------------------------------------------------------------------
@@ -970,6 +993,187 @@ document.addEventListener("DOMContentLoaded", function () {
             });
     }
 
+    // ---------------------------------------------------------------------------
+    // Feature: Kill / Restart Agent from Dashboard
+    // ---------------------------------------------------------------------------
+
+    function killAgent(agentId) {
+        if (!agentId) return;
+        if (!confirm("Kill agent " + agentId + "?")) return;
+        fetch("/api/agents/" + encodeURIComponent(agentId) + "/kill", { method: "POST" })
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+                showToast(agentId + " killed", "warning");
+                appendEvent({
+                    type: "crash",
+                    message: "Agent " + agentId + " killed from dashboard",
+                    timestamp: Date.now() / 1000,
+                    data: data,
+                });
+                fetchAgents();
+            })
+            .catch(function (err) {
+                showToast("Kill failed: " + err.message, "error");
+            });
+    }
+
+    function restartAgent(agentId) {
+        if (!agentId) return;
+        fetch("/api/agents/" + encodeURIComponent(agentId) + "/restart", { method: "POST" })
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+                showToast(agentId + " restarted", "success");
+                appendEvent({
+                    type: "recovery",
+                    message: "Agent " + agentId + " restarted from dashboard",
+                    timestamp: Date.now() / 1000,
+                    data: data,
+                });
+                fetchAgents();
+            })
+            .catch(function (err) {
+                showToast("Restart failed: " + err.message, "error");
+            });
+    }
+
+    // ---------------------------------------------------------------------------
+    // Feature: Timeline View
+    // ---------------------------------------------------------------------------
+
+    function fetchTimeline() {
+        fetchJSON("/api/timeline?limit=50", function (err, data) {
+            if (err || !Array.isArray(data)) return;
+            renderTimelineActivity(data);
+        });
+    }
+
+    function renderTimelineActivity(events) {
+        var container = document.getElementById("memory-stream");
+        if (!container) return;
+
+        // Only render timeline entries if the container is currently empty or has
+        // fewer entries than the timeline provides (avoid clobbering live SSE data)
+        if (container.children.length > 0) return;
+
+        // Filter: only show agent activity, not system metrics or runtime internals
+        var filtered = [];
+        for (var f = 0; f < events.length; f++) {
+            var ev = events[f];
+            var key = ev.key || ev.name || "";
+            // Skip system metrics entries and session:active pings
+            if (key.indexOf("metrics:") === 0) continue;
+            if (key.indexOf("runtime:") === 0) continue;
+            if (key.indexOf(":session:active") !== -1) continue;
+            filtered.push(ev);
+        }
+
+        for (var i = 0; i < Math.min(filtered.length, MAX_STREAM_ENTRIES); i++) {
+            var item = filtered[i];
+            var entry = elem("div", "stream-entry memory-op");
+            var keyStr = item.key || (item.agent_id + ":" + item.action);
+            var ts = item.timestamp || 0;
+            entry.innerHTML =
+                '<span class="op-key" title="' + escapeHtml(keyStr) + '">' + escapeHtml(truncate(keyStr, 40)) + "</span>" +
+                '<span class="op-latency" style="color:var(--color-info);">' + escapeHtml(item.action || "activity") + "</span>" +
+                '<span class="op-time">' + timeAgo(ts) + "</span>";
+            container.appendChild(entry);
+        }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Feature: Onboarding Empty State
+    // ---------------------------------------------------------------------------
+
+    function renderOnboarding() {
+        var content = document.getElementById("tab-overview");
+        if (!content) return;
+        // Only show if stat cards show 0 agents
+        var agentCountEl = document.getElementById("metric-active-agents");
+        var agentCount = parseInt(agentCountEl ? agentCountEl.textContent : "0", 10);
+        if (agentCount > 0) {
+            removeOnboarding();
+            return;
+        }
+
+        var onboarding = document.getElementById("onboarding-card");
+        if (!onboarding) {
+            onboarding = document.createElement("div");
+            onboarding.id = "onboarding-card";
+            onboarding.className = "card";
+            onboarding.style.cssText = "padding:40px; text-align:center; margin:20px 0;";
+            onboarding.innerHTML =
+                '<h2 style="font-size:24px; margin-bottom:16px; color:var(--text-bright);">Welcome to Octopoda</h2>' +
+                '<p style="color:var(--text-secondary); margin-bottom:24px;">Your AI agents will appear here automatically.</p>' +
+                '<div style="text-align:left; max-width:500px; margin:0 auto; font-family:var(--font-display); font-size:13px; line-height:2; color:var(--text-secondary);">' +
+                '<p><span style="color:var(--accent-primary);">Step 1:</span> Run <code style="background:var(--bg-elevated); padding:2px 6px; border-radius:4px;">octo init</code> in your terminal</p>' +
+                '<p><span style="color:var(--accent-primary);">Step 2:</span> Restart your Claude Code sessions</p>' +
+                '<p><span style="color:var(--accent-primary);">Step 3:</span> Agents appear here automatically</p>' +
+                '</div>';
+            // Insert after stat cards row
+            var statCards = content.querySelector(".stat-cards-row");
+            if (statCards && statCards.nextSibling) {
+                statCards.parentNode.insertBefore(onboarding, statCards.nextSibling);
+            } else if (statCards) {
+                statCards.parentNode.appendChild(onboarding);
+            }
+        }
+    }
+
+    function removeOnboarding() {
+        var onboarding = document.getElementById("onboarding-card");
+        if (onboarding && onboarding.parentNode) {
+            onboarding.parentNode.removeChild(onboarding);
+        }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Feature: Memory Diff View
+    // ---------------------------------------------------------------------------
+
+    function fetchMemoryDiff(agentId, key) {
+        fetchJSON("/api/agents/" + encodeURIComponent(agentId) + "/diff/" + encodeURIComponent(key), function (err, data) {
+            if (err || !data) return;
+            showMemoryDiffModal(data);
+        });
+    }
+
+    function showMemoryDiffModal(data) {
+        var overlay = document.getElementById("modal-overlay");
+        if (!overlay) return;
+
+        var content = overlay.querySelector(".modal-body");
+        if (!content) return;
+
+        var titleEl = document.getElementById("modal-title");
+        if (titleEl) titleEl.textContent = "Memory Diff: " + (data.key || "");
+
+        if (data.diff === null) {
+            content.innerHTML =
+                '<div style="text-align:center; padding:20px; color:var(--text-secondary);">' +
+                '<p>' + escapeHtml(data.message || "No previous version available") + '</p>' +
+                '</div>';
+        } else {
+            var prevStr = JSON.stringify(data.previous, null, 2) || "{}";
+            var currStr = JSON.stringify(data.current, null, 2) || "{}";
+            content.innerHTML =
+                '<div style="margin-bottom:12px; color:var(--text-secondary); font-size:12px;">' +
+                'Total versions: ' + (data.total_versions || 0) +
+                '</div>' +
+                '<div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">' +
+                '<div>' +
+                '<h4 style="font-size:12px; color:var(--color-danger); margin-bottom:8px; text-transform:uppercase; letter-spacing:0.04em;">Previous</h4>' +
+                '<pre class="json-content" style="max-height:400px;">' + escapeHtml(prevStr) + '</pre>' +
+                '</div>' +
+                '<div>' +
+                '<h4 style="font-size:12px; color:var(--color-success); margin-bottom:8px; text-transform:uppercase; letter-spacing:0.04em;">Current</h4>' +
+                '<pre class="json-content" style="max-height:400px;">' + escapeHtml(currStr) + '</pre>' +
+                '</div>' +
+                '</div>';
+        }
+
+        overlay.classList.remove("hidden");
+    }
+
     function bindDemoControls() {
         var startBtn = document.getElementById("btn-start-demo");
         if (startBtn) {
@@ -1019,24 +1223,48 @@ document.addEventListener("DOMContentLoaded", function () {
             totalCrashes += (a.crash_count || 0);
         }
 
-        // Update text elements
-        var countEl = document.getElementById("health-donut-count");
+        // Count warnings (idle agents) and critical (crashed/error agents)
+        var warnings = 0;
+        var critical = 0;
+        for (var w = 0; w < agents.length; w++) {
+            var s = agents[w].status;
+            if (s === "idle" || s === "recovering") warnings++;
+            else if (s === "crashed" || s === "error") critical++;
+        }
+
+        // Update text elements — match the IDs from index.html
+        var countEl = document.getElementById("health-ring-total");
         if (countEl) animateNumber(countEl, total);
 
-        var healthyEl = document.getElementById("health-donut-healthy");
-        if (healthyEl) healthyEl.textContent = "Healthy " + healthy;
+        var healthyEl = document.getElementById("health-count-healthy");
+        if (healthyEl) animateNumber(healthyEl, healthy);
 
-        var memoriesEl = document.getElementById("health-stats-memories");
+        var warningsEl = document.getElementById("health-count-warnings");
+        if (warningsEl) animateNumber(warningsEl, warnings);
+
+        var critCountEl = document.getElementById("health-count-critical");
+        if (critCountEl) animateNumber(critCountEl, critical);
+
+        var memoriesEl = document.getElementById("health-metric-memories");
         if (memoriesEl) animateNumber(memoriesEl, totalMemories);
 
-        var criticalEl = document.getElementById("health-stats-critical");
+        var criticalEl = document.getElementById("health-metric-critical");
         if (criticalEl) animateNumber(criticalEl, totalCrashes);
 
-        // Render SVG donut chart
-        var donutContainer = document.getElementById("health-donut-svg");
+        // Render SVG donut chart into the canvas container
+        var donutContainer = document.getElementById("chart-agent-health-ring");
+        // Fall back: if the canvas exists, replace it with an SVG container div
+        if (donutContainer && donutContainer.tagName === "CANVAS") {
+            var svgDiv = document.createElement("div");
+            svgDiv.id = "chart-agent-health-ring";
+            svgDiv.style.width = "140px";
+            svgDiv.style.height = "140px";
+            donutContainer.parentNode.replaceChild(svgDiv, donutContainer);
+            donutContainer = svgDiv;
+        }
         if (!donutContainer) return;
 
-        var size = 120;
+        var size = 140;
         var strokeWidth = 10;
         var radius = (size - strokeWidth) / 2;
         var circumference = 2 * Math.PI * radius;
@@ -1075,11 +1303,11 @@ document.addEventListener("DOMContentLoaded", function () {
         for (var i = 0; i < agents.length; i++) {
             totalMemories += (agents[i].memory_node_count || 0);
         }
-        var memoriesEl = document.getElementById("health-stats-memories");
+        var memoriesEl = document.getElementById("health-metric-memories");
         if (memoriesEl) animateNumber(memoriesEl, totalMemories);
 
         // Storage usage from system metrics
-        var storageEl = document.getElementById("health-stats-storage");
+        var storageEl = document.getElementById("health-metric-storage");
         if (storageEl) {
             var storageVal = metrics.storage_mb || metrics.total_storage_mb || 0;
             if (storageVal > 0) {
@@ -1090,7 +1318,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         // Average TTL from system metrics
-        var ttlEl = document.getElementById("health-stats-ttl");
+        var ttlEl = document.getElementById("health-metric-ttl");
         if (ttlEl) {
             var ttlVal = metrics.avg_ttl_seconds || metrics.mean_ttl || 0;
             if (ttlVal > 0) {
@@ -1101,7 +1329,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         // Critical errors / crashes
-        var criticalEl = document.getElementById("health-stats-critical");
+        var criticalEl = document.getElementById("health-metric-critical");
         if (criticalEl) {
             animateNumber(criticalEl, metrics.total_crashes || 0);
         }
@@ -1572,6 +1800,13 @@ document.addEventListener("DOMContentLoaded", function () {
     window.renderAgentPerformanceDetail = renderAgentPerformanceDetail;
     window.updateHealthStats = updateHealthStats;
     window.fetchAgentScoreBreakdown = fetchAgentScoreBreakdown;
+    // New feature exports
+    window.killAgent = killAgent;
+    window.restartAgent = restartAgent;
+    window.fetchTimeline = fetchTimeline;
+    window.fetchMemoryDiff = fetchMemoryDiff;
+    window.renderOnboarding = renderOnboarding;
+    window.removeOnboarding = removeOnboarding;
 
     // ---------------------------------------------------------------------------
     // Initialization
@@ -1588,3 +1823,73 @@ document.addEventListener("DOMContentLoaded", function () {
 
     console.log("[Octopoda] Dashboard initialized (premium features active)");
 });
+
+// ── AI Assistant ──────────────────────────────────────────────
+(function() {
+    var toggle = document.getElementById("ai-toggle");
+    var chat = document.getElementById("ai-chat");
+    var close = document.getElementById("ai-close");
+    var input = document.getElementById("ai-input");
+    var send = document.getElementById("ai-send");
+    var messages = document.getElementById("ai-messages");
+
+    if (!toggle) return;
+
+    toggle.addEventListener("click", function() {
+        chat.classList.toggle("hidden");
+        if (!chat.classList.contains("hidden")) input.focus();
+    });
+
+    close.addEventListener("click", function() {
+        chat.classList.add("hidden");
+    });
+
+    function getCurrentPage() {
+        var active = document.querySelector(".nav-item--active");
+        if (!active) return "overview";
+        return active.getAttribute("data-tab") || "overview";
+    }
+
+    function addMessage(text, isUser) {
+        var div = document.createElement("div");
+        div.className = "ai-msg " + (isUser ? "ai-msg--user" : "ai-msg--bot");
+        div.textContent = text;
+        messages.appendChild(div);
+        messages.scrollTop = messages.scrollHeight;
+        return div;
+    }
+
+    function askAI(question) {
+        addMessage(question, true);
+        var loading = addMessage("Denke nach...", false);
+        loading.classList.add("ai-msg--loading");
+
+        fetch("/api/ai/explain", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({question: question, page: getCurrentPage()})
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            loading.remove();
+            addMessage(data.answer || "Keine Antwort", false);
+        })
+        .catch(function() {
+            loading.remove();
+            addMessage("Fehler beim Verbinden mit dem AI.", false);
+        });
+    }
+
+    send.addEventListener("click", function() {
+        var q = input.value.trim();
+        if (!q) return;
+        input.value = "";
+        askAI(q);
+    });
+
+    input.addEventListener("keydown", function(e) {
+        if (e.key === "Enter") {
+            send.click();
+        }
+    });
+})();

@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Octopoda Agent Runtime Dashboard</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐙</text></svg>">
 
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -180,7 +181,7 @@
               <span class="stat-card__value" id="metric-active-agents">0</span>
               <span class="stat-card__trend stat-card__trend--up" id="metric-agents-trend">+8%</span>
             </div>
-            <span class="stat-card__sub" id="metric-agents-sub">of 3 max (free tier)</span>
+            <span class="stat-card__sub" id="metric-agents-sub">self-hosted</span>
           </div>
           <div class="stat-card stat-card--green">
             <div class="stat-card__header">
@@ -297,8 +298,8 @@
                 <h3 class="card__title">Agent Status</h3>
               </div>
               <div id="agent-status-list" class="agent-status-list"></div>
-              <div id="btn-start-demo-wrapper" style="padding:12px 16px;">
-                <button class="btn btn-primary btn-block" id="btn-start-demo">Start Demo</button>
+              <div id="empty-agents-hint" class="empty-state" style="padding:16px; text-align:center; color:var(--text-muted); font-size:13px; display:none;">
+                Start a Claude Code session to see agents here.
               </div>
             </div>
           </div>
@@ -352,6 +353,7 @@
       <!-- TAB: Agents                                                  -->
       <!-- ============================================================ -->
       <section id="tab-agents" style="display:none;">
+        <p class="page-description">Alle deine Claude Code Sessions. Jeder Agent ist eine separate Claude-Instanz mit eigenem Memory.</p>
         <div class="filters-row">
           <input type="text" id="agents-search" class="search-input" placeholder="Search agents...">
           <select id="agents-state-filter" class="select-input">
@@ -387,6 +389,7 @@
       <!-- TAB: Memory Explorer                                         -->
       <!-- ============================================================ -->
       <section id="tab-memory-explorer" style="display:none;">
+        <p class="page-description">Durchsuche alle gespeicherten Daten deiner Agents. Jeder Agent hat einen eigenen Namespace mit Keys im Dateipfad-Format.</p>
         <div class="memory-layout">
           <div class="memory-layout__tree">
             <div class="card">
@@ -433,6 +436,7 @@
       <!-- TAB: Performance                                             -->
       <!-- ============================================================ -->
       <section id="tab-performance" style="display:none;">
+        <p class="page-description">Wie schnell und zuverlässig arbeiten deine Agents? Score = Gesamtbewertung aus Zuverlässigkeit, Geschwindigkeit und Stabilität.</p>
         <!-- Performance Leaderboard -->
         <div class="card card--performance-leaderboard">
           <div class="card__header">
@@ -590,6 +594,7 @@
       <!-- TAB: Audit & Replay                                          -->
       <!-- ============================================================ -->
       <section id="tab-audit" style="display:none;">
+        <p class="page-description">Protokoll aller Entscheidungen deiner Agents. Zeigt wer was wann entschieden hat -- Transparenz für AI-Aktionen.</p>
         <div class="filters-row">
           <select id="replay-agent-select" class="select-input">
             <option value="">Select Agent...</option>
@@ -608,6 +613,7 @@
       <!-- TAB: Recovery Console                                        -->
       <!-- ============================================================ -->
       <section id="tab-recovery" style="display:none;">
+        <p class="page-description">Crash-Recovery-History: Wann sind Agents abgestürzt und wie schnell wurden sie automatisch wiederhergestellt?</p>
         <div class="stat-cards-row stat-cards-row--4">
           <div class="stat-card stat-card--indigo">
             <div class="stat-card__header">
@@ -656,6 +662,7 @@
       <!-- TAB: Shared Memory Bus                                       -->
       <!-- ============================================================ -->
       <section id="tab-shared-memory" style="display:none;">
+        <p class="page-description">Gemeinsamer Speicher zwischen Agents. Hier können Agents Daten teilen und miteinander kommunizieren.</p>
         <div class="card">
           <div class="card__header"><h3 class="card__title">Shared Spaces</h3></div>
           <div id="shared-spaces-list" style="padding:16px;"></div>
@@ -666,6 +673,7 @@
       <!-- TAB: Agent Map (full page)                                   -->
       <!-- ============================================================ -->
       <section id="tab-agent-map" style="display:none;">
+        <p class="page-description">Netzwerk-Visualisierung aller Agents. Farben zeigen den Status, Linien die Kommunikation über Shared Memory.</p>
         <div class="card" style="height:calc(100vh - 160px);">
           <div class="card__header">
             <h3 class="card__title">Agent Network</h3>
@@ -708,6 +716,26 @@
 <!-- TOAST NOTIFICATIONS                                                -->
 <!-- ================================================================== -->
 <div id="toast-container" class="toast-container"></div>
+
+<!-- AI Assistant Chat Widget -->
+<div id="ai-assistant" class="ai-assistant">
+  <button id="ai-toggle" class="ai-toggle" title="AI Assistent">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+  </button>
+  <div id="ai-chat" class="ai-chat hidden">
+    <div class="ai-chat__header">
+      <span>🐙 Octopoda Assistent</span>
+      <button id="ai-close" class="ai-chat__close">&times;</button>
+    </div>
+    <div id="ai-messages" class="ai-chat__messages">
+      <div class="ai-msg ai-msg--bot">Hallo! Ich erkläre dir alles im Dashboard. Frag mich einfach was du wissen willst.</div>
+    </div>
+    <div class="ai-chat__input-row">
+      <input type="text" id="ai-input" class="ai-chat__input" placeholder="Was bedeutet Performance Score?" autocomplete="off">
+      <button id="ai-send" class="ai-chat__send">&rarr;</button>
+    </div>
+  </div>
+</div>
 
 <!-- ================================================================== -->
 <!-- SCRIPTS                                                            -->

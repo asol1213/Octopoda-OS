@@ -388,6 +388,214 @@ def demo_reboot(agent_id):
         return jsonify({"error": str(e)}), 500
 
 
+@api.route("/api/notifications/webhooks", methods=["GET"])
+def list_webhooks():
+    from synrix_runtime.monitoring.notifications import NotificationManager
+    nm = NotificationManager.get_instance()
+    return jsonify({"webhooks": nm.list_webhooks()})
+
+@api.route("/api/notifications/webhooks", methods=["POST"])
+def add_webhook():
+    data = request.get_json() or {}
+    url = data.get("url", "")
+    if not url:
+        return jsonify({"error": "URL required"}), 400
+    from synrix_runtime.monitoring.notifications import NotificationManager
+    nm = NotificationManager.get_instance()
+    nm.add_webhook(url)
+    return jsonify({"success": True, "url": url})
+
+@api.route("/api/notifications/webhooks", methods=["DELETE"])
+def remove_webhook():
+    data = request.get_json() or {}
+    url = data.get("url", "")
+    from synrix_runtime.monitoring.notifications import NotificationManager
+    nm = NotificationManager.get_instance()
+    nm.remove_webhook(url)
+    return jsonify({"success": True})
+
+@api.route("/api/notifications/test", methods=["POST"])
+def test_notification():
+    from synrix_runtime.monitoring.notifications import NotificationManager
+    nm = NotificationManager.get_instance()
+    nm.notify("test", "system", {"message": "Test notification from Octopoda"})
+    return jsonify({"success": True, "sent_to": len(nm.list_webhooks())})
+
+
+@api.route("/api/agents/<agent_id>/kill", methods=["POST"])
+def kill_agent(agent_id):
+    """Deregister an agent."""
+    try:
+        backend = get_backend()
+        backend.write(f"runtime:agents:{agent_id}:state", {"value": "deregistered"})
+        return jsonify({"success": True, "agent_id": agent_id, "action": "killed"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@api.route("/api/agents/<agent_id>/restart", methods=["POST"])
+def restart_agent(agent_id):
+    """Reset agent state to running."""
+    try:
+        backend = get_backend()
+        backend.write(f"runtime:agents:{agent_id}:state", {"value": "running"})
+        import time as _time
+        backend.write(f"runtime:agents:{agent_id}:heartbeat", {"value": _time.time()})
+        return jsonify({"success": True, "agent_id": agent_id, "action": "restarted"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@api.route("/api/timeline")
+def global_timeline():
+    """Get chronological timeline of all agent activities."""
+    try:
+        backend = get_backend()
+        limit = request.args.get("limit", 50, type=int)
+        # Query recent activity across all agents
+        results = backend.query_prefix("agents:", limit=limit)
+        events = []
+        for r in results:
+            key = r.get("key", "")
+            parts = key.split(":")
+            if len(parts) >= 3:
+                agent_id = parts[1] if parts[0] == "agents" else "system"
+                action = parts[2] if len(parts) > 2 else "unknown"
+                events.append({
+                    "agent_id": agent_id,
+                    "action": action,
+                    "key": key,
+                    "timestamp": r.get("data", {}).get("timestamp", 0),
+                    "data": r.get("data", {})
+                })
+        events.sort(key=lambda x: x.get("timestamp", 0), reverse=True)
+        return jsonify(events[:limit])
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@api.route("/api/agents/<agent_id>/diff/<path:key>")
+def agent_memory_diff(agent_id, key):
+    """Get diff between current and previous version of a memory."""
+    try:
+        from synrix_runtime.api.runtime import AgentRuntime
+        agent = AgentRuntime(agent_id)
+        result = agent.recall_history(key)
+        if not hasattr(result, 'versions') or len(result.versions) < 2:
+            return jsonify({"diff": None, "message": "No previous version"})
+        current = result.versions[-1] if result.versions else {}
+        previous = result.versions[-2] if len(result.versions) >= 2 else {}
+        return jsonify({
+            "key": key,
+            "current": current,
+            "previous": previous,
+            "total_versions": len(result.versions)
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@api.route("/api/ai/explain", methods=["POST"])
+def ai_explain():
+    """AI-powered dashboard assistant using Groq."""
+    import os
+    data = request.get_json() or {}
+    question = data.get("question", "")
+    page = data.get("page", "overview")
+
+    api_key = os.environ.get("GROQ_API_KEY", "")
+    if not api_key:
+        return jsonify({"answer": "GROQ_API_KEY nicht gesetzt. Bitte als Umgebungsvariable setzen.", "error": True}), 500
+
+    system_prompt = """Du bist der Octopoda Dashboard-Assistent. Du erklärst das Dashboard auf Deutsch, einfach und verständlich.
+
+Das Octopoda Dashboard überwacht AI-Agents (Claude Code Sessions). Hier ist was jede Seite zeigt:
+
+OVERVIEW:
+- Active Agents: Anzahl laufender Claude Code Sessions
+- Total Operations: Wie oft Agents Daten gespeichert/gelesen haben
+- Total Crashes: Wenn ein Agent-Herzschlag stoppt (meist beim Server-Neustart, keine echten Crashes)
+- Avg Recovery: Durchschnittliche Zeit bis ein Agent nach einem Crash wiederhergestellt ist
+- Agent Status: Liste aller Agents mit Score (0-100) und Uptime
+- Agent Health: Gesamtgesundheit aller Agents
+
+AGENTS:
+- Tabelle aller registrierten Claude Code Sessions
+- ID: Kürzel der Session-ID (z.B. claude-06974d6e)
+- State: RUNNING = aktiv, IDLE = inaktiv
+- Ops: Anzahl Speicher-Operationen
+- Write/Read Latency: Geschwindigkeit der Operationen
+- Score: Gesamtbewertung (Zuverlässigkeit + Geschwindigkeit + Stabilität)
+- Crashes: Wie oft der Agent abgestürzt ist
+
+PERFORMANCE:
+- Leaderboard: Ranking aller Agents nach Score
+- Agent Comparison: Balkendiagramm der Scores
+- Latency Over Time: Wie sich die Geschwindigkeit über Zeit verändert
+- Ops/Minute: Wie aktiv die Agents sind
+
+AGENT MAP:
+- Netzwerk-Visualisierung aller Agents
+- Grün = aktiv, Gelb = idle, Rot = Fehler
+- Linien zeigen Kommunikation zwischen Agents (Shared Memory)
+
+MEMORY EXPLORER:
+- Durchsuche alle gespeicherten Daten
+- Jeder Agent hat einen Namespace (agents/NAME/)
+- Keys sind wie Dateipfade: agents:claude-xxx:session:active
+- Man kann Werte inspizieren (JSON)
+
+SHARED SPACES:
+- Gemeinsamer Speicher zwischen Agents
+- Agent A schreibt rein, Agent B liest
+- Leer = Agents teilen noch keine Daten
+
+AUDIT TRAIL:
+- Protokoll aller Entscheidungen die Agents getroffen haben
+- Zeigt wer was wann entschieden hat
+- Leer = keine log_decision() Aufrufe
+
+RECOVERY:
+- Crash-Recovery-History
+- Zeigt wann Agents abgestürzt und wiederhergestellt wurden
+- "auto" = automatische Wiederherstellung durch den Daemon
+
+Antworte immer kurz (2-3 Sätze), auf Deutsch, einfach verständlich. Keine technischen Details wenn nicht gefragt."""
+
+    context = f"Der User ist auf der Seite: {page}"
+
+    try:
+        import urllib.request
+        import json as json_mod
+
+        req_body = json_mod.dumps({
+            "model": "llama-3.3-70b-versatile",
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "system", "content": context},
+                {"role": "user", "content": question}
+            ],
+            "temperature": 0.3,
+            "max_tokens": 300
+        }).encode()
+
+        req = urllib.request.Request(
+            "https://api.groq.com/openai/v1/chat/completions",
+            data=req_body,
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {api_key}"
+            }
+        )
+
+        resp = urllib.request.urlopen(req, timeout=10)
+        result = json_mod.loads(resp.read())
+        answer = result["choices"][0]["message"]["content"]
+        return jsonify({"answer": answer, "model": "llama-3.3-70b-versatile"})
+    except Exception as e:
+        return jsonify({"answer": f"AI nicht verfügbar: {str(e)}", "error": True}), 500
+
+
 @api.route("/stream/events")
 def stream_events():
     from synrix_runtime.dashboard.sse import SSEManager
