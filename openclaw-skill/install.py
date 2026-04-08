@@ -82,9 +82,8 @@ def main():
         print(f"[OK]   API key saved to {config_path}", flush=True)
 
     elif not os.environ.get("OCTOPODA_API_KEY"):
-        print("[INFO] No API key provided.", flush=True)
-        print("  Get your free key at https://octopodas.com")
-        print("  Then run: python install.py --key sk-octopoda-YOUR_KEY")
+        print("[INFO] No API key provided. Running in local mode (SQLite).", flush=True)
+        print("  To use cloud mode: python install.py --key sk-octopoda-YOUR_KEY")
         print("  Or set OCTOPODA_API_KEY in your environment")
 
     # Run setup validation

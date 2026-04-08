@@ -327,8 +327,7 @@ def ensure_authenticated(allow_local: bool = False) -> str:
             ensure_authenticated._warned = True
             logger.warning(
                 "No Octopoda API key found. Set OCTOPODA_API_KEY environment variable "
-                "or run interactively to sign up. Running in local mode. "
-                "Sign up free at https://octopodas.com"
+                "or run interactively to sign up. Running in local mode (SQLite)."
             )
         return ""
 

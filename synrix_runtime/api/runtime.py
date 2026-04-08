@@ -233,8 +233,7 @@ class AgentRuntime:
         logger.info(f"[{agent_id}] Runtime connected in {connect_us:.1f}us | type={agent_type} | mode={mode}")
         if not self._is_cloud and not getattr(AgentRuntime, "_local_hint_shown", False):
             AgentRuntime._local_hint_shown = True
-            print(f"Octopoda running locally (SQLite). "
-                  f"For cloud sync + dashboard: https://octopodas.com/signup")
+            print(f"Running in local mode (SQLite).")
 
     def remember(self, key: str, value: Any, tags: list = None) -> MemoryResult:
         """Store a memory in Synrix.

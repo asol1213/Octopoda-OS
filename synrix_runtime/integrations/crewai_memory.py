@@ -37,8 +37,7 @@ class SynrixCrewMemory:
     Shared persistent memory for CrewAI crews, backed by Octopoda Cloud.
     All agents in the crew share knowledge through the cloud API.
 
-    Requires OCTOPODA_API_KEY environment variable.
-    Get your free key at https://octopodas.com
+    Requires OCTOPODA_API_KEY environment variable for cloud mode.
 
     Usage:
         crew_memory = SynrixCrewMemory(crew_id="research_crew")

@@ -55,8 +55,7 @@ class SynrixMemory(BaseMemory):
         memory = SynrixMemory(agent_id="my_chain")
         # Use with LangChain: ConversationChain(llm=llm, memory=memory)
 
-    Requires OCTOPODA_API_KEY environment variable.
-    Get your free key at https://octopodas.com
+    Requires OCTOPODA_API_KEY environment variable for cloud mode.
     """
 
     def __init__(self, agent_id: str = "langchain_default", memory_key: str = "history",

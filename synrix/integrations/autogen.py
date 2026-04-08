@@ -59,8 +59,7 @@ class OctopodaAutoGenMemory:
     Replaces AutoGen's built-in Teachability with cloud-backed memory
     that includes semantic search, knowledge graphs, and temporal versioning.
 
-    Requires OCTOPODA_API_KEY environment variable.
-    Get your free key at https://octopodas.com
+    Requires OCTOPODA_API_KEY environment variable for cloud mode.
     """
 
     def __init__(

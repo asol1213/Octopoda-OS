@@ -148,7 +148,8 @@ async def _prewarm_models():
         except Exception as e:
             import logging
             logging.getLogger("synrix.runtime").warning("Model pre-warm failed: %s", e)
-    await asyncio.get_event_loop().run_in_executor(_executor, _load)
+    import threading
+    threading.Thread(target=_load, name="model-prewarm", daemon=True).start()
 
 
 @app.on_event("startup")

@@ -65,8 +65,7 @@ class OctopodaCrewMemory:
     in the cloud. Memories persist across crew runs and are searchable
     by meaning (semantic search).
 
-    Requires OCTOPODA_API_KEY environment variable.
-    Get your free key at https://octopodas.com
+    Requires OCTOPODA_API_KEY environment variable for cloud mode.
     """
 
     def __init__(

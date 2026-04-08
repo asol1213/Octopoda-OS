@@ -36,8 +36,7 @@ def _get_client() -> Octopoda:
 class SynrixOpenAIMemory:
     """Persistent memory for OpenAI Agents SDK, backed by Octopoda Cloud.
 
-    Requires OCTOPODA_API_KEY environment variable.
-    Get your free key at https://octopodas.com
+    Requires OCTOPODA_API_KEY environment variable for cloud mode.
     """
 
     def __init__(self, backend=None):

@@ -4,8 +4,8 @@ Octopoda MCP Server
 Model Context Protocol server that exposes Octopoda cloud memory as tools.
 Any MCP-compatible AI (Claude, Cursor, ChatGPT, VS Code, etc.) can use this.
 
-All memory operations go through the Octopoda Cloud API (api.octopodas.com).
-Requires OCTOPODA_API_KEY — get your free key at https://octopodas.com
+All memory operations go through the Octopoda Cloud API.
+Set OCTOPODA_API_KEY for cloud mode, or run without it for local mode (SQLite).
 
 Setup (Claude Desktop):
     Add to claude_desktop_config.json:
@@ -782,14 +782,14 @@ def octopoda_search_filtered(agent_id: str, query: str | None = None,
 # -----------------------------------------------------------------------
 
 def main():
-    """Run the MCP server (stdio transport)."""
+    """Run the MCP server (stdio transport).
+    Works in local mode (SQLite) without an API key,
+    or cloud mode with OCTOPODA_API_KEY set.
+    """
     api_key = os.environ.get("OCTOPODA_API_KEY", "")
     if not api_key:
         import sys
-        logger.error("ERROR: OCTOPODA_API_KEY not set.", file=sys.stderr)
-        logger.info("Get your free key at https://octopodas.com", file=sys.stderr)
-        logger.info("Then: OCTOPODA_API_KEY=sk-octopoda-... octopoda-mcp", file=sys.stderr)
-        sys.exit(1)
+        print("Running Octopoda MCP in local mode (SQLite). No cloud key needed.", file=sys.stderr)
     mcp.run(transport="stdio")
 
 

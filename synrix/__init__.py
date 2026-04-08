@@ -1,8 +1,7 @@
 """
-SYNRIX Python Client SDK
+Octopoda Python Client SDK
 
-Python client library for interacting with the SYNRIX knowledge system.
-Requires connection to SYNRIX server (hosted service or self-hosted binary).
+Python client library for interacting with the Octopoda knowledge system.
 """
 import logging
 
@@ -53,17 +52,11 @@ __all__ = [
 
 
 def init():
-    """Initialize SYNRIX - check for engine and provide helpful error if missing.
-    
-    This function checks if the SYNRIX engine is available. If not found,
+    """Initialize Octopoda - check for engine and provide helpful error if missing.
+
+    This function checks if the engine is available. If not found,
     it prints a helpful error message directing users to install it.
-    
-    Example:
-        >>> import synrix
-        >>> synrix.init()
-        SYNRIX engine not found.
-        Run: synrix install-engine
-    
+
     Returns:
         bool: True if engine is found, False otherwise
     """
@@ -78,7 +71,7 @@ def init():
 
 # Post-install check: Warn if server not configured
 def _check_server_config():
-    """Check if SYNRIX server is configured, warn if not."""
+    """Check if server is configured, warn if not."""
     server_url = os.getenv("SYNRIX_SERVER_URL")
     if not server_url:
         # Only warn if this is the first import and no server URL is set

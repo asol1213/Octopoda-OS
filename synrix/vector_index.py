@@ -24,8 +24,11 @@ except ImportError:
 
 try:
     import faiss
+    # Quick sanity check that faiss actually works
+    _test_idx = faiss.IndexFlatIP(4)
+    del _test_idx
     HAS_FAISS = True
-except ImportError:
+except Exception:
     HAS_FAISS = False
 
 

@@ -8,7 +8,7 @@
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 
   <!-- Libraries -->
   <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
@@ -22,48 +22,84 @@
 <div class="dashboard">
 
   <!-- ================================================================== -->
-  <!-- LEFT SIDEBAR — Navigation                                          -->
+  <!-- LEFT SIDEBAR -- Navigation                                         -->
   <!-- ================================================================== -->
   <aside class="sidebar">
     <div class="sidebar__brand">
-      <img class="sidebar__logo-img" src="/img/logo.png" alt="Octopoda" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-      <div class="sidebar__logo-icon" style="display:none">O</div>
-      <span class="sidebar__logo-text">Octopoda</span>
+      <div class="sidebar__logo-mark">
+        <svg class="sidebar__octopus-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Octopus body -->
+          <ellipse cx="24" cy="18" rx="14" ry="12" fill="url(#octo-grad)"/>
+          <!-- Eyes -->
+          <circle cx="19" cy="16" r="2.5" fill="#0f0f17"/>
+          <circle cx="29" cy="16" r="2.5" fill="#0f0f17"/>
+          <circle cx="19.8" cy="15.3" r="0.9" fill="#fff"/>
+          <circle cx="29.8" cy="15.3" r="0.9" fill="#fff"/>
+          <!-- Tentacles -->
+          <path d="M10 26 C8 32, 5 38, 3 42" stroke="url(#octo-grad)" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+          <path d="M14 28 C13 34, 11 39, 9 44" stroke="url(#octo-grad)" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+          <path d="M19 29 C19 35, 18 40, 17 46" stroke="url(#octo-grad)" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+          <path d="M24 30 C24 36, 24 41, 24 46" stroke="url(#octo-grad)" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+          <path d="M29 29 C29 35, 30 40, 31 46" stroke="url(#octo-grad)" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+          <path d="M34 28 C35 34, 37 39, 39 44" stroke="url(#octo-grad)" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+          <path d="M38 26 C40 32, 43 38, 45 42" stroke="url(#octo-grad)" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+          <defs>
+            <linearGradient id="octo-grad" x1="10" y1="6" x2="38" y2="46" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#818cf8"/>
+              <stop offset="100%" stop-color="#6366f1"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+      <div class="sidebar__brand-text">
+        <span class="sidebar__logo-text">Octopoda</span>
+        <span class="sidebar__version">v3.0.3 -- Self-Hosted</span>
+      </div>
     </div>
-    <span class="sidebar__version">v2.0.0</span>
 
     <nav class="sidebar__nav">
+      <!-- MONITORING section -->
+      <span class="sidebar__section-label">MONITORING</span>
+
       <a class="nav-item nav-item--active" data-tab="overview">
-        <svg class="nav-item__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-        <span>Dashboard</span>
+        <svg class="nav-item__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        <span>Overview</span>
       </a>
       <a class="nav-item" data-tab="agents">
         <svg class="nav-item__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         <span>Agents</span>
       </a>
-      <a class="nav-item" data-tab="memory-explorer">
-        <svg class="nav-item__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
-        <span>Memory</span>
-      </a>
       <a class="nav-item" data-tab="performance">
         <svg class="nav-item__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
         <span>Performance</span>
       </a>
-      <a class="nav-item" data-tab="audit">
-        <svg class="nav-item__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-        <span>Audit Trail</span>
+      <a class="nav-item" data-tab="agent-map">
+        <svg class="nav-item__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2"/><circle cx="4" cy="6" r="2"/><circle cx="20" cy="6" r="2"/><circle cx="4" cy="18" r="2"/><circle cx="20" cy="18" r="2"/><line x1="6" y1="6" x2="10" y2="10.5"/><line x1="18" y1="6" x2="14" y2="10.5"/><line x1="6" y1="18" x2="10" y2="13.5"/><line x1="18" y1="18" x2="14" y2="13.5"/></svg>
+        <span>Agent Map</span>
       </a>
-      <a class="nav-item" data-tab="recovery">
-        <svg class="nav-item__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        <span>Recovery</span>
+
+      <!-- OPERATIONS section -->
+      <span class="sidebar__section-label">OPERATIONS</span>
+
+      <a class="nav-item" data-tab="memory-explorer">
+        <svg class="nav-item__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+        <span>Memory Explorer</span>
       </a>
       <a class="nav-item" data-tab="shared-memory">
         <svg class="nav-item__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
         <span>Shared Spaces</span>
       </a>
-      <a class="nav-item" data-tab="agent-map">
-        <svg class="nav-item__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2"/><circle cx="4" cy="6" r="2"/><circle cx="20" cy="6" r="2"/><circle cx="4" cy="18" r="2"/><circle cx="20" cy="18" r="2"/><line x1="6" y1="6" x2="10" y2="10.5"/><line x1="18" y1="6" x2="14" y2="10.5"/><line x1="6" y1="18" x2="10" y2="13.5"/><line x1="18" y1="18" x2="14" y2="13.5"/></svg>
-        <span>Agent Map</span>
+      <a class="nav-item" data-tab="audit">
+        <svg class="nav-item__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        <span>Audit Trail</span>
+      </a>
+
+      <!-- MANAGEMENT section -->
+      <span class="sidebar__section-label">MANAGEMENT</span>
+
+      <a class="nav-item" data-tab="recovery">
+        <svg class="nav-item__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <span>Recovery</span>
       </a>
     </nav>
 
@@ -90,7 +126,14 @@
     <!-- Header Bar -->
     <header class="header-bar">
       <div class="header-bar__left">
-        <h1 class="header-bar__title" id="page-title">Dashboard</h1>
+        <h1 class="header-bar__title" id="page-title">Overview</h1>
+      </div>
+      <div class="header-bar__center">
+        <div class="header-bar__search">
+          <svg class="header-bar__search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" class="header-bar__search-input" id="global-search" placeholder="Search agents, keys, operations..." autocomplete="off">
+          <kbd class="header-bar__search-kbd">/</kbd>
+        </div>
       </div>
       <div class="header-bar__right">
         <div class="header-bar__metrics">
@@ -111,7 +154,9 @@
             <span class="header-metric__label">Recoveries</span>
           </div>
         </div>
-        <div class="header-bar__avatar">O</div>
+        <div class="header-bar__avatar" title="Self-Hosted Instance">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="12" cy="12" r="2"/><circle cx="4" cy="6" r="2"/><circle cx="20" cy="6" r="2"/><circle cx="4" cy="18" r="2"/><circle cx="20" cy="18" r="2"/><line x1="6" y1="6" x2="10" y2="10.5"/><line x1="18" y1="6" x2="14" y2="10.5"/><line x1="6" y1="18" x2="10" y2="13.5"/><line x1="18" y1="18" x2="14" y2="13.5"/></svg>
+        </div>
       </div>
     </header>
 
@@ -131,7 +176,10 @@
               </span>
               <span class="stat-card__label">Active Agents</span>
             </div>
-            <span class="stat-card__value" id="metric-active-agents">0</span>
+            <div class="stat-card__value-row">
+              <span class="stat-card__value" id="metric-active-agents">0</span>
+              <span class="stat-card__trend stat-card__trend--up" id="metric-agents-trend">+8%</span>
+            </div>
             <span class="stat-card__sub" id="metric-agents-sub">of 3 max (free tier)</span>
           </div>
           <div class="stat-card stat-card--green">
@@ -141,7 +189,10 @@
               </span>
               <span class="stat-card__label">Total Operations</span>
             </div>
-            <span class="stat-card__value" id="metric-total-ops">0</span>
+            <div class="stat-card__value-row">
+              <span class="stat-card__value" id="metric-total-ops">0</span>
+              <span class="stat-card__trend stat-card__trend--up" id="metric-ops-trend">+12%</span>
+            </div>
             <span class="stat-card__sub" id="metric-ops-sub">--</span>
           </div>
           <div class="stat-card stat-card--orange">
@@ -151,7 +202,10 @@
               </span>
               <span class="stat-card__label">Total Crashes</span>
             </div>
-            <span class="stat-card__value" id="metric-crashes">0</span>
+            <div class="stat-card__value-row">
+              <span class="stat-card__value" id="metric-crashes">0</span>
+              <span class="stat-card__trend stat-card__trend--down" id="metric-crash-trend">-100%</span>
+            </div>
             <span class="stat-card__sub" id="metric-crash-sub">All recovered</span>
           </div>
           <div class="stat-card stat-card--blue">
@@ -161,43 +215,133 @@
               </span>
               <span class="stat-card__label">Avg Recovery</span>
             </div>
-            <span class="stat-card__value" id="metric-recovery-time">--</span>
+            <div class="stat-card__value-row">
+              <span class="stat-card__value" id="metric-recovery-time">--</span>
+              <span class="stat-card__trend stat-card__trend--up" id="metric-recovery-trend">+3%</span>
+            </div>
             <span class="stat-card__sub" id="metric-recovery-sub">100% success rate</span>
           </div>
         </div>
 
-        <!-- Two column: Chart + Agent Status -->
-        <div class="overview-row">
+        <!-- Primary row: Chart + Agent Health Ring -->
+        <div class="overview-row overview-row--primary">
           <div class="card overview-chart-card">
             <div class="card__header">
               <h3 class="card__title">Operations Overview</h3>
+              <div class="card__header-actions">
+                <button class="btn btn-sm btn-ghost" data-range="1h">1H</button>
+                <button class="btn btn-sm btn-ghost btn-ghost--active" data-range="24h">24H</button>
+                <button class="btn btn-sm btn-ghost" data-range="7d">7D</button>
+              </div>
             </div>
             <div class="chart-container">
               <canvas id="chart-ops-overview" height="280"></canvas>
             </div>
           </div>
-          <div class="card overview-agents-card">
-            <div class="card__header">
-              <h3 class="card__title">Agent Status</h3>
+
+          <div class="overview-right-stack">
+            <!-- Agent Health Ring -->
+            <div class="card card--compact agent-health-card" id="agent-health-panel">
+              <div class="card__header">
+                <h3 class="card__title">Agent Health</h3>
+              </div>
+              <div class="agent-health__body">
+                <div class="agent-health__ring-wrap">
+                  <canvas id="chart-agent-health-ring" width="140" height="140"></canvas>
+                  <div class="agent-health__ring-center">
+                    <span class="agent-health__ring-value" id="health-ring-total">0</span>
+                    <span class="agent-health__ring-label">Total</span>
+                  </div>
+                </div>
+                <div class="agent-health__stats">
+                  <div class="agent-health__stat">
+                    <span class="agent-health__dot agent-health__dot--healthy"></span>
+                    <span class="agent-health__stat-label">Healthy</span>
+                    <span class="agent-health__stat-value" id="health-count-healthy">0</span>
+                  </div>
+                  <div class="agent-health__stat">
+                    <span class="agent-health__dot agent-health__dot--warning"></span>
+                    <span class="agent-health__stat-label">Warnings</span>
+                    <span class="agent-health__stat-value" id="health-count-warnings">0</span>
+                  </div>
+                  <div class="agent-health__stat">
+                    <span class="agent-health__dot agent-health__dot--critical"></span>
+                    <span class="agent-health__stat-label">Critical</span>
+                    <span class="agent-health__stat-value" id="health-count-critical">0</span>
+                  </div>
+                </div>
+              </div>
+              <div class="agent-health__footer">
+                <div class="agent-health__metric">
+                  <span class="agent-health__metric-value" id="health-metric-memories">0</span>
+                  <span class="agent-health__metric-label">MEMORIES</span>
+                </div>
+                <div class="agent-health__metric">
+                  <span class="agent-health__metric-value" id="health-metric-storage">0 MB</span>
+                  <span class="agent-health__metric-label">STORAGE</span>
+                </div>
+                <div class="agent-health__metric">
+                  <span class="agent-health__metric-value" id="health-metric-ttl">0</span>
+                  <span class="agent-health__metric-label">TTL</span>
+                </div>
+                <div class="agent-health__metric">
+                  <span class="agent-health__metric-value" id="health-metric-critical">0</span>
+                  <span class="agent-health__metric-label">CRITICAL</span>
+                </div>
+              </div>
             </div>
-            <div id="agent-status-list" class="agent-status-list"></div>
-            <div id="btn-start-demo-wrapper" style="padding:12px 16px;">
-              <button class="btn btn-primary btn-block" id="btn-start-demo">Start Demo</button>
+
+            <!-- Agent Status List -->
+            <div class="card card--compact overview-agents-card">
+              <div class="card__header">
+                <h3 class="card__title">Agent Status</h3>
+              </div>
+              <div id="agent-status-list" class="agent-status-list"></div>
+              <div id="btn-start-demo-wrapper" style="padding:12px 16px;">
+                <button class="btn btn-primary btn-block" id="btn-start-demo">Start Demo</button>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- Two column: Activity + Alerts -->
-        <div class="overview-row">
+        <!-- Secondary row: Anomalies + Activity + Alerts -->
+        <div class="overview-row overview-row--triple">
+          <!-- Anomalies Panel -->
+          <div class="card">
+            <div class="card__header">
+              <h3 class="card__title">Anomalies</h3>
+              <span class="card__badge card__badge--warning" id="anomaly-count-badge">0</span>
+            </div>
+            <div class="anomaly-list" id="overview-anomaly-list">
+              <div class="anomaly-list__empty">No anomalies detected</div>
+            </div>
+          </div>
+
+          <!-- Recent Activity -->
           <div class="card">
             <div class="card__header">
               <h3 class="card__title">Recent Activity</h3>
             </div>
             <div class="memory-stream__list" id="memory-stream"></div>
           </div>
+
+          <!-- Recent Recoveries -->
           <div class="card">
             <div class="card__header">
-              <h3 class="card__title">Alerts</h3>
+              <h3 class="card__title">Recent Recoveries</h3>
+              <span class="card__badge card__badge--success" id="recovery-count-badge">0</span>
+            </div>
+            <div class="recovery-recent-list" id="overview-recovery-list">
+              <div class="recovery-recent-list__empty">No recent recoveries</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Alerts row -->
+        <div class="overview-row">
+          <div class="card card--full-width">
+            <div class="card__header">
+              <h3 class="card__title">Alerts &amp; Events</h3>
             </div>
             <div class="events-log__list" id="events-log"></div>
           </div>
@@ -257,7 +401,7 @@
           </div>
           <div class="memory-layout__content">
             <div class="card">
-              <div style="padding:16px;display:flex;gap:12px;align-items:center;border-bottom:1px solid var(--border-default);">
+              <div class="memory-toolbar">
                 <input type="text" id="memory-search" class="search-input" placeholder="Search keys..." style="flex:1;">
                 <label class="toggle-label">
                   <input type="checkbox" id="live-mode-toggle"> <span>Live</span>
@@ -286,6 +430,163 @@
       </section>
 
       <!-- ============================================================ -->
+      <!-- TAB: Performance                                             -->
+      <!-- ============================================================ -->
+      <section id="tab-performance" style="display:none;">
+        <!-- Performance Leaderboard -->
+        <div class="card card--performance-leaderboard">
+          <div class="card__header">
+            <h3 class="card__title">Performance Leaderboard</h3>
+            <span class="card__subtitle-inline">Ranked by composite score</span>
+          </div>
+          <div class="table-wrapper">
+            <table id="perf-leaderboard-table" class="data-table data-table--leaderboard">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Agent</th>
+                  <th>Score</th>
+                  <th>Ops</th>
+                  <th>W.Latency</th>
+                  <th>R.Latency</th>
+                  <th>Error Rate</th>
+                </tr>
+              </thead>
+              <tbody id="perf-leaderboard-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Charts grid -->
+        <div class="perf-grid">
+          <div class="card">
+            <div class="card__header"><h3 class="card__title">Agent Comparison</h3></div>
+            <div class="chart-container"><canvas id="chart-agent-comparison" height="250"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card__header"><h3 class="card__title">Latency Over Time</h3></div>
+            <div class="chart-container"><canvas id="chart-latency" height="250"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card__header"><h3 class="card__title">Ops / Minute</h3></div>
+            <div class="chart-container"><canvas id="chart-ops-min" height="250"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card__header"><h3 class="card__title">Latency Comparison</h3></div>
+            <div class="chart-container"><canvas id="chart-latency-comparison" height="250"></canvas></div>
+          </div>
+        </div>
+
+        <!-- Per-Agent Detail + Score Breakdown -->
+        <div class="perf-detail-row">
+          <!-- Per-Agent Detail -->
+          <div class="card card--agent-detail">
+            <div class="card__header">
+              <h3 class="card__title">Agent Detail</h3>
+              <select id="perf-agent-select" class="select-input select-input--sm">
+                <option value="">Select agent...</option>
+              </select>
+            </div>
+            <div class="agent-detail__body" id="perf-agent-detail">
+              <div class="agent-detail__ring-wrap">
+                <canvas id="chart-agent-score-donut" width="120" height="120"></canvas>
+                <div class="agent-detail__ring-center">
+                  <span class="agent-detail__ring-value" id="perf-detail-score">--</span>
+                </div>
+              </div>
+              <div class="agent-detail__metrics">
+                <div class="agent-detail__metric">
+                  <span class="agent-detail__metric-value" id="perf-detail-ops">--</span>
+                  <span class="agent-detail__metric-label">Ops/min</span>
+                </div>
+                <div class="agent-detail__metric">
+                  <span class="agent-detail__metric-value" id="perf-detail-error-rate">--</span>
+                  <span class="agent-detail__metric-label">Error Rate</span>
+                </div>
+                <div class="agent-detail__metric">
+                  <span class="agent-detail__metric-value" id="perf-detail-memory">--</span>
+                  <span class="agent-detail__metric-label">Memory Nodes</span>
+                </div>
+                <div class="agent-detail__metric">
+                  <span class="agent-detail__metric-value" id="perf-detail-crashes">--</span>
+                  <span class="agent-detail__metric-label">Crashes</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Score Breakdown -->
+          <div class="card card--score-breakdown">
+            <div class="card__header">
+              <h3 class="card__title">Score Breakdown</h3>
+            </div>
+            <div class="score-breakdown__body" id="perf-score-breakdown">
+              <div class="score-breakdown__item">
+                <div class="score-breakdown__label-row">
+                  <span class="score-breakdown__label">Reliability</span>
+                  <span class="score-breakdown__pts" id="score-reliability">-- / 25</span>
+                </div>
+                <div class="score-breakdown__bar">
+                  <div class="score-breakdown__fill score-breakdown__fill--reliability" id="score-reliability-bar" style="width:0%"></div>
+                </div>
+              </div>
+              <div class="score-breakdown__item">
+                <div class="score-breakdown__label-row">
+                  <span class="score-breakdown__label">Latency</span>
+                  <span class="score-breakdown__pts" id="score-latency">-- / 20</span>
+                </div>
+                <div class="score-breakdown__bar">
+                  <div class="score-breakdown__fill score-breakdown__fill--latency" id="score-latency-bar" style="width:0%"></div>
+                </div>
+              </div>
+              <div class="score-breakdown__item">
+                <div class="score-breakdown__label-row">
+                  <span class="score-breakdown__label">Stability</span>
+                  <span class="score-breakdown__pts" id="score-stability">-- / 15</span>
+                </div>
+                <div class="score-breakdown__bar">
+                  <div class="score-breakdown__fill score-breakdown__fill--stability" id="score-stability-bar" style="width:0%"></div>
+                </div>
+              </div>
+              <div class="score-breakdown__item">
+                <div class="score-breakdown__label-row">
+                  <span class="score-breakdown__label">Activity</span>
+                  <span class="score-breakdown__pts" id="score-activity">-- / 15</span>
+                </div>
+                <div class="score-breakdown__bar">
+                  <div class="score-breakdown__fill score-breakdown__fill--activity" id="score-activity-bar" style="width:0%"></div>
+                </div>
+              </div>
+              <div class="score-breakdown__item">
+                <div class="score-breakdown__label-row">
+                  <span class="score-breakdown__label">Search Quality</span>
+                  <span class="score-breakdown__pts" id="score-search">-- / 15</span>
+                </div>
+                <div class="score-breakdown__bar">
+                  <div class="score-breakdown__fill score-breakdown__fill--search" id="score-search-bar" style="width:0%"></div>
+                </div>
+              </div>
+              <div class="score-breakdown__item">
+                <div class="score-breakdown__label-row">
+                  <span class="score-breakdown__label">Memory Utilisation</span>
+                  <span class="score-breakdown__pts" id="score-memory">-- / 10</span>
+                </div>
+                <div class="score-breakdown__bar">
+                  <div class="score-breakdown__fill score-breakdown__fill--memory" id="score-memory-bar" style="width:0%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Anomaly Log -->
+        <div class="card">
+          <div class="card__header"><h3 class="card__title">Anomaly Log</h3></div>
+          <ul id="anomaly-log" class="event-list" style="padding:16px;"></ul>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
       <!-- TAB: Audit & Replay                                          -->
       <!-- ============================================================ -->
       <section id="tab-audit" style="display:none;">
@@ -304,48 +605,44 @@
       </section>
 
       <!-- ============================================================ -->
-      <!-- TAB: Performance                                             -->
-      <!-- ============================================================ -->
-      <section id="tab-performance" style="display:none;">
-        <div class="perf-grid">
-          <div class="card">
-            <div class="card__header"><h3 class="card__title">Agent Comparison</h3></div>
-            <div class="chart-container"><canvas id="chart-agent-comparison" height="250"></canvas></div>
-          </div>
-          <div class="card">
-            <div class="card__header"><h3 class="card__title">Latency Over Time</h3></div>
-            <div class="chart-container"><canvas id="chart-latency" height="250"></canvas></div>
-          </div>
-          <div class="card">
-            <div class="card__header"><h3 class="card__title">Ops / Minute</h3></div>
-            <div class="chart-container"><canvas id="chart-ops-min" height="250"></canvas></div>
-          </div>
-          <div class="card">
-            <div class="card__header"><h3 class="card__title">Anomaly Log</h3></div>
-            <ul id="anomaly-log" class="event-list" style="padding:16px;"></ul>
-          </div>
-        </div>
-      </section>
-
-      <!-- ============================================================ -->
       <!-- TAB: Recovery Console                                        -->
       <!-- ============================================================ -->
       <section id="tab-recovery" style="display:none;">
         <div class="stat-cards-row stat-cards-row--4">
           <div class="stat-card stat-card--indigo">
-            <div class="stat-card__header"><span class="stat-card__label">Total Recoveries</span></div>
+            <div class="stat-card__header">
+              <span class="stat-card__icon stat-card__icon--indigo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              </span>
+              <span class="stat-card__label">Total Recoveries</span>
+            </div>
             <span class="stat-card__value" id="recovery-total">0</span>
           </div>
           <div class="stat-card stat-card--green">
-            <div class="stat-card__header"><span class="stat-card__label">Avg Recovery Time</span></div>
+            <div class="stat-card__header">
+              <span class="stat-card__icon stat-card__icon--green">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </span>
+              <span class="stat-card__label">Avg Recovery Time</span>
+            </div>
             <span class="stat-card__value" id="recovery-avg-time">--</span>
           </div>
           <div class="stat-card stat-card--blue">
-            <div class="stat-card__header"><span class="stat-card__label">Success Rate</span></div>
+            <div class="stat-card__header">
+              <span class="stat-card__icon stat-card__icon--blue">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              </span>
+              <span class="stat-card__label">Success Rate</span>
+            </div>
             <span class="stat-card__value" id="recovery-success-rate">100%</span>
           </div>
           <div class="stat-card stat-card--green">
-            <div class="stat-card__header"><span class="stat-card__label">Zero Data Loss</span></div>
+            <div class="stat-card__header">
+              <span class="stat-card__icon stat-card__icon--green">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              </span>
+              <span class="stat-card__label">Zero Data Loss</span>
+            </div>
             <span class="stat-card__value" id="recovery-zero-loss">100%</span>
           </div>
         </div>

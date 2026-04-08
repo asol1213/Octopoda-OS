@@ -1,6 +1,6 @@
 """
-Synrix Agent Runtime
-====================
+Octopoda Agent Runtime
+======================
 Start with: python start.py
             python start.py --demo
             python start.py --demo --no-browser
@@ -45,7 +45,7 @@ STARTUP_BANNER = """
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Synrix Agent Runtime")
+    parser = argparse.ArgumentParser(description="Octopoda Agent Runtime")
     parser.add_argument("--demo", action="store_true", help="Start the three-agent demo")
     parser.add_argument("--port", type=int, default=None, help="Dashboard port")
     parser.add_argument("--api-port", type=int, default=None, help="Cloud API port")
@@ -64,7 +64,7 @@ def main():
     if args.no_api:
         config.api_enabled = False
 
-    # Step 1: Connect to Synrix with real persistent backend
+    # Step 1: Connect to backend
     start = time.perf_counter_ns()
     try:
         from synrix.agent_backend import get_synrix_backend
@@ -77,8 +77,8 @@ def main():
         backend.write("runtime:health_check", {"status": "ok", "timestamp": time.time()})
         verify_us = (time.perf_counter_ns() - test_start) / 1000
     except Exception as e:
-        print(f"\n  [ERROR] Failed to connect to Synrix: {e}")
-        print(f"  Check that Synrix is installed: pip install synrix")
+        print(f"\n  [ERROR] Failed to connect to Octopoda: {e}")
+        print(f"  Check that Octopoda is installed: pip install octopoda")
         import traceback
         traceback.print_exc()
         sys.exit(1)

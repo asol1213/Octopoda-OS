@@ -111,7 +111,7 @@ def run_researcher(synrix_agent, questions):
         # Store in Synrix personal memory
         key = f"finding_{i:02d}"
         mem_result = synrix_agent.remember(key, finding)
-        print(f"  [RESEARCHER] GPT responded in {llm_latency_ms:.0f}ms | Synrix stored in {mem_result.latency_us:.1f}us")
+        print(f"  [RESEARCHER] GPT responded in {llm_latency_ms:.0f}ms | Octopoda stored in {mem_result.latency_us:.1f}us")
 
         # Share with team via Synrix shared memory
         synrix_agent.share(key, finding, space="research_team")
@@ -126,12 +126,12 @@ def run_researcher(synrix_agent, questions):
         time.sleep(0.3)
 
     synrix_agent.snapshot("research_complete")
-    print(f"[RESEARCHER] Done. {len(questions)} findings stored in Synrix.\n")
+    print(f"[RESEARCHER] Done. {len(questions)} findings stored in Octopoda.\n")
 
 
 def run_analyst(synrix_agent, crash_after=2):
     """Analyst agent: reads Synrix memory, analyzes with GPT. Crashes mid-way."""
-    print("[ANALYST] Reading research findings from Synrix shared memory...")
+    print("[ANALYST] Reading research findings from Octopoda shared memory...")
 
     findings_analysed = 0
     for i in range(len(RESEARCH_QUESTIONS)):
@@ -172,7 +172,7 @@ def run_analyst(synrix_agent, crash_after=2):
             f"Pattern: {analysis.get('pattern', '?')[:50]}",
             analysis
         )
-        print(f"  [ANALYST] GPT analysis in {llm_latency_ms:.0f}ms | Synrix: {mem_result.latency_us:.1f}us")
+        print(f"  [ANALYST] GPT analysis in {llm_latency_ms:.0f}ms | Octopoda: {mem_result.latency_us:.1f}us")
 
         findings_analysed += 1
         time.sleep(0.3)
@@ -218,7 +218,7 @@ def run_analyst_recovery(synrix_agent, start_from=2):
             f"Pattern: {analysis.get('pattern', '?')[:50]}",
             analysis
         )
-        print(f"  [ANALYST] GPT: {llm_latency_ms:.0f}ms | Synrix: {mem_result.latency_us:.1f}us")
+        print(f"  [ANALYST] GPT: {llm_latency_ms:.0f}ms | Octopoda: {mem_result.latency_us:.1f}us")
         time.sleep(0.3)
 
     synrix_agent.snapshot("analysis_complete")
@@ -227,7 +227,7 @@ def run_analyst_recovery(synrix_agent, start_from=2):
 
 def run_writer(synrix_agent):
     """Writer agent: reads all Synrix shared memory, produces report with GPT."""
-    print("[WRITER] Reading all findings and analyses from Synrix shared memory...")
+    print("[WRITER] Reading all findings and analyses from Octopoda shared memory...")
 
     # Read all shared data from Synrix
     shared_data = synrix_agent.backend.query_prefix("shared:research_team:", limit=200)
@@ -247,7 +247,7 @@ def run_writer(synrix_agent):
         elif short_key.startswith("analysis_"):
             analyses.append(value)
 
-    print(f"  [WRITER] Found {len(findings)} findings + {len(analyses)} analyses in Synrix")
+    print(f"  [WRITER] Found {len(findings)} findings + {len(analyses)} analyses in Octopoda")
 
     # Build the prompt with real data from Synrix
     prompt = f"""Synthesize these research findings and analyses into an executive summary:
@@ -285,7 +285,7 @@ Write a concise report about persistent memory infrastructure for AI agents."""
     synrix_agent.snapshot("report_complete")
 
     print(f"\n  [WRITER] REPORT GENERATED")
-    print(f"  [WRITER] GPT: {llm_latency_ms:.0f}ms | Synrix: {mem_result.latency_us:.1f}us")
+    print(f"  [WRITER] GPT: {llm_latency_ms:.0f}ms | Octopoda: {mem_result.latency_us:.1f}us")
     print(f"  [WRITER] Title: {report.get('title', '?')}")
     summary = report.get('executive_summary', '')
     if summary:
@@ -341,8 +341,8 @@ def continuous_activity(agents, stop_event):
 def run_demo(keep_alive=True):
     """Run the real OpenAI Agents demo with Synrix persistence."""
     print("=" * 60)
-    print("  SYNRIX AGENT RUNTIME - REAL OPENAI AGENTS DEMO")
-    print("  Using GPT-4o-mini with Synrix persistent memory")
+    print("  OCTOPODA AGENT RUNTIME - REAL OPENAI AGENTS DEMO")
+    print("  Using GPT-4o-mini with Octopoda persistent memory")
     print("=" * 60)
 
     # Verify API key
@@ -385,9 +385,9 @@ def run_demo(keep_alive=True):
 
     print("\n" + "=" * 60)
     print("  DEMO COMPLETE - ALL GPT CALLS WERE REAL")
-    print(f"  All agent memory persisted in Synrix")
+    print(f"  All agent memory persisted in Octopoda")
     print(f"  Analyst crashed and recovered with zero data loss")
-    print(f"  Writer synthesized report from Synrix shared memory")
+    print(f"  Writer synthesized report from Octopoda shared memory")
     print("=" * 60)
 
     if keep_alive:

@@ -93,8 +93,7 @@ class OctopodaMemory(BaseMemory):
     Works with ConversationChain, AgentExecutor, and any LangChain
     component that accepts a BaseMemory.
 
-    Requires OCTOPODA_API_KEY environment variable.
-    Get your free key at https://octopodas.com
+    Requires OCTOPODA_API_KEY environment variable for cloud mode.
     """
 
     # Pydantic fields (LangChain uses pydantic for BaseMemory)
